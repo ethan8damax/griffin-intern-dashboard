@@ -1,0 +1,40 @@
+@import "tailwindcss";
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: oklch(0.97 0.004 258);
+}
+
+body,
+input,
+select,
+textarea,
+button {
+  font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
+}
+
+::selection {
+  background: oklch(0.8 0.05 258 / 0.4);
+}
+
+[contenteditable]:focus {
+  outline: 2px solid oklch(0.55 0.12 258);
+  outline-offset: 1px;
+  background: oklch(0.96 0.02 258);
+}
+
+[contenteditable]:hover {
+  background: oklch(0.965 0.008 258);
+}
+
+::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: oklch(0.82 0.01 258);
+  border-radius: 4px;
+}
