@@ -156,8 +156,8 @@ export default function InternDashboard() {
 
   useEffect(() => {
     if (!loaded) return;
-    setSaveStatus("saving");
     const timeout = setTimeout(async () => {
+      setSaveStatus("saving");
       try {
         await setDoc(dashboardDocRef, state);
         setSaveStatus("saved");
@@ -185,6 +185,18 @@ export default function InternDashboard() {
       ...s,
       reviews: s.reviews.map((r) => (r.id !== reviewId ? r : { ...r, questions: r.questions.map((q) => (q.id !== qid ? q : { ...q, response: value })) })),
     }));
+  }
+
+  if (!loaded) {
+    // Block interaction until the initial Firestore fetch resolves.
+    // Rendering the seed/stale data as an editable form here would let a
+    // user's edit land, then get silently overwritten the moment the fetch
+    // finally completes and calls setState with server data.
+    return (
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "oklch(0.97 0.004 258)", color: MUTED, fontSize: 13 }}>
+        Loading…
+      </div>
+    );
   }
 
   if (standaloneReview) {
