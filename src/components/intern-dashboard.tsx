@@ -18,8 +18,10 @@ import {
   NAV_TABS,
   freshDraftQuestions,
   initialState,
-  STORAGE_KEY,
+  DASHBOARD_DOC_ID,
 } from "@/lib/dashboard-data";
+import { doc, getDoc, setDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
 type SetAppState = Dispatch<SetStateAction<AppState>>;
 
@@ -115,25 +117,57 @@ function renderPeriodSectionHtml(period: Period): string {
 export default function InternDashboard() {
   const [state, setState] = useState<AppState>(() => initialState());
   const [loaded, setLoaded] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const searchParams = useSearchParams();
 
+  const dashboardDocRef = doc(db, "dashboard", DASHBOARD_DOC_ID);
+
   useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem(STORAGE_KEY);
-      if (raw) setState(JSON.parse(raw) as AppState);
-    } catch {
-      // ponytail: corrupt/missing local storage just falls back to seed data
+    let cancelled = false;
+    async function load() {
+      try {
+        const snap = await getDoc(dashboardDocRef);
+        if (cancelled) return;
+        if (snap.exists()) {
+          setState(snap.data() as AppState);
+        } else {
+          const seed = initialState();
+          await setDoc(dashboardDocRef, seed);
+          setState(seed);
+        }
+        setLoaded(true);
+      } catch (err) {
+        if (cancelled) return;
+        // Do NOT setLoaded(true) here: the save effect only runs once
+        // loaded, and this component's state still holds the initialState()
+        // seed data. Enabling saves now would overwrite whatever real
+        // document already exists in Firestore. Leaving loaded=false keeps
+        // the user on read-only seed data until a page reload retries.
+        console.error("Failed to load dashboard state", err);
+        setSaveStatus("error");
+      }
     }
-    setLoaded(true);
+    load();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     if (!loaded) return;
-    try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    } catch {
-      // ponytail: storage full/unavailable — edits still work in-memory for the session
-    }
+    setSaveStatus("saving");
+    const timeout = setTimeout(async () => {
+      try {
+        await setDoc(dashboardDocRef, state);
+        setSaveStatus("saved");
+      } catch (err) {
+        console.error("Failed to save dashboard state", err);
+        setSaveStatus("error");
+      }
+    }, 500);
+    return () => clearTimeout(timeout);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state, loaded]);
 
   const reviewToken = searchParams.get("review");
@@ -255,6 +289,11 @@ export default function InternDashboard() {
                 {tab.label}
               </div>
             ))}
+          </div>
+          <div style={{ fontSize: 11.5, color: saveStatus === "error" ? "oklch(0.75 0.16 25)" : "oklch(0.78 0.02 258)", whiteSpace: "nowrap" }}>
+            {saveStatus === "saving" && "Saving…"}
+            {saveStatus === "saved" && "Saved"}
+            {saveStatus === "error" && "Save failed — check connection"}
           </div>
           <div onClick={exportFullPdf} style={{ padding: "8px 14px", border: "1px solid oklch(0.4 0.03 258)", borderRadius: 8, fontSize: 12.5, fontWeight: 600, color: "white", cursor: "pointer", whiteSpace: "nowrap" }}>
             Export full internship PDF

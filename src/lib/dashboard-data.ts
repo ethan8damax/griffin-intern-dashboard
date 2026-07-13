@@ -297,4 +297,4 @@ export function initialState(): AppState {
   };
 }
 
-export const STORAGE_KEY = "griffin-intern-dashboard-v1";
+export const DASHBOARD_DOC_ID = "main";
