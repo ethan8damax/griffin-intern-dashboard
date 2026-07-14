@@ -159,6 +159,7 @@ export type TabId = "dashboard" | "profile" | "scorecard" | "journal" | "okrs" |
 export interface AppState {
   activeTab: TabId;
   activeProfileName: string;
+  internProfiles: Record<string, InternProfileInfo>;
   activePeriodId: string;
   periods: Period[];
   journal: JournalEntry[];
@@ -185,20 +186,8 @@ export interface InternProfileInfo {
   manager: string;
   department: string;
   startDate: string;
+  bio: string;
 }
-
-export const INTERN_PROFILES: Record<string, InternProfileInfo> = {
-  "Grace Soegiarto": {
-    name: "Grace Soegiarto", initials: "GS", role: "Analyst Intern",
-    manager: "Jordan Patel, Engagement Lead", department: "Griffin Global / Doeren Mayhew Engagement",
-    startDate: "2026-06-01",
-  },
-  "Ethan Maxey": {
-    name: "Ethan Maxey", initials: "EM", role: "Analyst Intern",
-    manager: "Jordan Patel, Engagement Lead", department: "Griffin Global / Doeren Mayhew Engagement",
-    startDate: "2026-06-01",
-  },
-};
 
 export const MONTH_NAMES = [
   "January", "February", "March", "April", "May", "June",
@@ -314,6 +303,20 @@ export function initialState(): AppState {
   return {
     activeTab: "dashboard",
     activeProfileName: "Grace Soegiarto",
+    internProfiles: {
+      "Grace Soegiarto": {
+        name: "Grace Soegiarto", initials: "GS", role: "Analyst Intern",
+        manager: "Jordan Patel, Engagement Lead", department: "Griffin Global / Doeren Mayhew Engagement",
+        startDate: "2026-06-01",
+        bio: "Focused on ATS vendor landscape research and operational support for the Doeren Mayhew engagement.",
+      },
+      "Ethan Maxey": {
+        name: "Ethan Maxey", initials: "EM", role: "Analyst Intern",
+        manager: "Jordan Patel, Engagement Lead", department: "Griffin Global / Doeren Mayhew Engagement",
+        startDate: "2026-06-01",
+        bio: "Focused on ClearCompany performance-management evaluation and onboarding runbook development.",
+      },
+    },
     activePeriodId: "p1",
     periods: [
       {
@@ -463,5 +466,7 @@ export function normalizeState(raw: Partial<AppState>): AppState {
     activePriorityWeekId: raw.activePriorityWeekId ?? base.activePriorityWeekId,
     reflectionWeeks: raw.reflectionWeeks ?? base.reflectionWeeks,
     activeReflectionWeekId: raw.activeReflectionWeekId ?? base.activeReflectionWeekId,
+    activeProfileName: raw.activeProfileName ?? base.activeProfileName,
+    internProfiles: raw.internProfiles ?? base.internProfiles,
   };
 }

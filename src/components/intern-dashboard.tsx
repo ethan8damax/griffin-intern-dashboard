@@ -24,7 +24,6 @@ import {
   NAV_STANDALONE_ITEMS,
   NAV_GROUPS,
   TEAM_MEMBERS,
-  INTERN_PROFILES,
   freshDraftQuestions,
   initialState,
   normalizeState,
@@ -623,10 +622,13 @@ function DashboardTab({ state, setState, activePeriod }: { state: AppState; setS
 
 function ProfileTab({ state, setState }: { state: AppState; setState: SetAppState }) {
   const person = state.activeProfileName;
-  const profile = INTERN_PROFILES[person] ?? INTERN_PROFILES[TEAM_MEMBERS[0]];
+  const profile = state.internProfiles[person] ?? state.internProfiles[TEAM_MEMBERS[0]];
 
   function selectPerson(name: string) {
     setState((s) => ({ ...s, activeProfileName: name }));
+  }
+  function updateProfileField(field: "role" | "manager" | "department" | "startDate" | "bio", value: string) {
+    setState((s) => ({ ...s, internProfiles: { ...s.internProfiles, [person]: { ...s.internProfiles[person], [field]: value } } }));
   }
 
   const order: Status[] = ["green", "yellow", "red", "gray"];
@@ -666,23 +668,24 @@ function ProfileTab({ state, setState }: { state: AppState; setState: SetAppStat
         })}
       </div>
 
-      <div style={{ ...CARD, display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap" }}>
+      <div style={{ ...CARD, display: "flex", alignItems: "flex-start", gap: 20, flexWrap: "wrap" }}>
         <div style={{ width: 64, height: 64, borderRadius: "50%", background: MAROON, color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, fontWeight: 700, flex: "none" }}>{profile.initials}</div>
-        <div style={{ flex: 1, minWidth: 240 }}>
+        <div style={{ flex: 1, minWidth: 260 }}>
           <div style={{ fontSize: 20, fontWeight: 600, fontFamily: SERIF }}>{profile.name}</div>
-          <div style={{ fontSize: 13, color: MUTED, marginTop: 2 }}>{profile.role}</div>
+          <div style={{ fontSize: 13, color: MUTED, marginTop: 2 }} {...editable(profile.role, (v) => updateProfileField("role", v))} />
+          <div style={{ fontSize: 12.5, color: "oklch(0.35 0.015 50)", marginTop: 8, lineHeight: 1.5 }} {...editable(profile.bio, (v) => updateProfileField("bio", v))} />
           <div style={{ display: "flex", gap: 22, flexWrap: "wrap", marginTop: 12 }}>
             <div>
               <div style={LABEL}>Manager</div>
-              <div style={{ fontSize: 12.5, marginTop: 2 }}>{profile.manager}</div>
+              <div style={{ fontSize: 12.5, marginTop: 2 }} {...editable(profile.manager, (v) => updateProfileField("manager", v))} />
             </div>
             <div>
               <div style={LABEL}>Department</div>
-              <div style={{ fontSize: 12.5, marginTop: 2 }}>{profile.department}</div>
+              <div style={{ fontSize: 12.5, marginTop: 2 }} {...editable(profile.department, (v) => updateProfileField("department", v))} />
             </div>
             <div>
               <div style={LABEL}>Started</div>
-              <div style={{ fontSize: 12.5, marginTop: 2 }}>{profile.startDate}</div>
+              <input type="date" value={profile.startDate} onChange={(e) => updateProfileField("startDate", e.target.value)} style={{ fontSize: 12.5, marginTop: 2, border: "1px solid oklch(0.88 0.012 55)", borderRadius: 6, padding: "3px 6px" }} />
             </div>
           </div>
         </div>
@@ -769,7 +772,7 @@ function ProfileTab({ state, setState }: { state: AppState; setState: SetAppStat
       </div>
 
       <div style={{ fontSize: 12, color: "oklch(0.45 0.015 50)", background: "oklch(0.96 0.015 85)", border: "1px solid oklch(0.85 0.05 85)", borderRadius: 10, padding: "12px 16px", lineHeight: 1.6 }}>
-        <strong>Assumptions &amp; limitations:</strong> this profile is a read-only rollup of data already tracked elsewhere in the dashboard — nothing here is editable. &quot;KPI Score&quot; is currently the average of this person&apos;s submitted review scores only, since the Scorecard is tracked at the engagement level rather than per intern; attributing individual scorecard metrics to a person is a future enhancement. &quot;Department&quot; shows the client engagement rather than a corporate department, since this is a consulting internship, not a multi-department org. Manager, role, and start date are static demo fields, not yet part of the editable data model. Other future enhancements: a profile photo/avatar upload, an activity timeline combining journal + reflections + goal updates in one feed, and exporting a single-person PDF summary (today&apos;s PDF export is engagement-wide only).
+        <strong>Assumptions &amp; limitations:</strong> role, bio, manager, department, and start date are editable here (click text to edit, like the rest of the dashboard) and save to the shared Firestore document — there&apos;s no per-user login, so anyone with the link can edit anyone&apos;s profile. The goals/priorities/reflections/reviews sections below stay read-only rollups of data owned by their own tabs; edit those under Planning/Performance instead. The name itself isn&apos;t editable here since it&apos;s used as the lookup key across goals, priorities, and reviews — renaming a person would need a real person-ID system as a future enhancement. &quot;KPI Score&quot; is currently the average of this person&apos;s submitted review scores only, since the Scorecard is tracked at the engagement level rather than per intern; attributing individual scorecard metrics to a person is a future enhancement. &quot;Department&quot; shows the client engagement rather than a corporate department, since this is a consulting internship, not a multi-department org. Other future enhancements: a profile photo/avatar upload, an activity timeline combining journal + reflections + goal updates in one feed, and exporting a single-person PDF summary (today&apos;s PDF export is engagement-wide only).
       </div>
     </div>
   );
