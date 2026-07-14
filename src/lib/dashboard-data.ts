@@ -154,10 +154,11 @@ export interface DraftJournalEntry {
   text: string;
 }
 
-export type TabId = "dashboard" | "scorecard" | "journal" | "okrs" | "priorities" | "reflections" | "feedback" | "reviews" | "reference" | "saved";
+export type TabId = "dashboard" | "profile" | "scorecard" | "journal" | "okrs" | "priorities" | "reflections" | "feedback" | "reviews" | "reference" | "saved";
 
 export interface AppState {
   activeTab: TabId;
+  activeProfileName: string;
   activePeriodId: string;
   periods: Period[];
   journal: JournalEntry[];
@@ -176,6 +177,28 @@ export interface AppState {
   reviewDraft: ReviewDraft;
   activeReviewId: string | null;
 }
+
+export interface InternProfileInfo {
+  name: string;
+  initials: string;
+  role: string;
+  manager: string;
+  department: string;
+  startDate: string;
+}
+
+export const INTERN_PROFILES: Record<string, InternProfileInfo> = {
+  "Grace Soegiarto": {
+    name: "Grace Soegiarto", initials: "GS", role: "Analyst Intern",
+    manager: "Jordan Patel, Engagement Lead", department: "Griffin Global / Doeren Mayhew Engagement",
+    startDate: "2026-06-01",
+  },
+  "Ethan Maxey": {
+    name: "Ethan Maxey", initials: "EM", role: "Analyst Intern",
+    manager: "Jordan Patel, Engagement Lead", department: "Griffin Global / Doeren Mayhew Engagement",
+    startDate: "2026-06-01",
+  },
+};
 
 export const MONTH_NAMES = [
   "January", "February", "March", "April", "May", "June",
@@ -221,7 +244,10 @@ export interface NavGroup {
   items: NavItem[];
 }
 
-export const NAV_STANDALONE: NavItem = { id: "dashboard", label: "Dashboard" };
+export const NAV_STANDALONE_ITEMS: NavItem[] = [
+  { id: "dashboard", label: "Dashboard" },
+  { id: "profile", label: "Intern Profile" },
+];
 
 export const NAV_GROUPS: NavGroup[] = [
   {
@@ -252,6 +278,7 @@ export const NAV_GROUPS: NavGroup[] = [
 
 export const TAB_LABELS: Record<TabId, string> = {
   dashboard: "Dashboard",
+  profile: "Intern Profile",
   scorecard: "Scorecard",
   journal: "Journal",
   okrs: "Goals",
@@ -286,6 +313,7 @@ export function freshDraftQuestions(subjectName?: string): ReviewDraft {
 export function initialState(): AppState {
   return {
     activeTab: "dashboard",
+    activeProfileName: "Grace Soegiarto",
     activePeriodId: "p1",
     periods: [
       {
