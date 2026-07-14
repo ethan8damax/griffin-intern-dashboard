@@ -235,7 +235,6 @@ export interface NavGroup {
 
 export const NAV_STANDALONE_ITEMS: NavItem[] = [
   { id: "dashboard", label: "Dashboard" },
-  { id: "profile", label: "Intern Profile" },
 ];
 
 export const NAV_GROUPS: NavGroup[] = [
@@ -264,20 +263,6 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
 ];
-
-export const TAB_LABELS: Record<TabId, string> = {
-  dashboard: "Dashboard",
-  profile: "Intern Profile",
-  scorecard: "Scorecard",
-  journal: "Journal",
-  okrs: "Goals",
-  priorities: "Weekly Priorities",
-  reflections: "Weekly Reflections",
-  feedback: "360 Feedback",
-  reviews: "Review Summaries",
-  reference: "Reference",
-  saved: "Saved",
-};
 
 export const TEAM_MEMBERS = ["Grace Soegiarto", "Ethan Maxey"];
 
