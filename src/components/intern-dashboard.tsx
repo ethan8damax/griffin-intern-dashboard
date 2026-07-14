@@ -1065,7 +1065,7 @@ function ReferenceTab({ state, setState }: { state: AppState; setState: SetAppSt
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <div style={{ fontSize: 12, color: MUTED }}>These definitions drive what &quot;on track&quot; means for each scorecard metric — edit them as the engagement evolves.</div>
+      <div style={{ fontSize: 12.5, color: MUTED, background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "14px 18px" }}>These definitions drive what &quot;on track&quot; means for each scorecard metric — edit them as the engagement evolves.</div>
 
       {state.kpiDefs.map((cat) => (
         <div key={cat.id} style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "18px 22px" }}>
