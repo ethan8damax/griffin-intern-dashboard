@@ -42,7 +42,6 @@ button {
 .ghi-nav-tab,
 .ghi-btn-primary,
 .ghi-btn-ghost,
-.ghi-sidebar-item,
 .ghi-x {
   transition: background-color 0.15s ease-out, color 0.15s ease-out, border-color 0.15s ease-out, opacity 0.15s ease-out;
 }
@@ -59,10 +58,6 @@ button {
   background: oklch(0.95 0.025 55);
 }
 
-.ghi-sidebar-item:hover {
-  background: oklch(0.96 0.02 55) !important;
-}
-
 .ghi-chevron {
   transition: transform 0.15s ease-out;
 }
@@ -76,7 +71,6 @@ button {
   .ghi-nav-tab,
   .ghi-btn-primary,
   .ghi-btn-ghost,
-  .ghi-sidebar-item,
   .ghi-chevron,
   .ghi-x {
     transition: none;

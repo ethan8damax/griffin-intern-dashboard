@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type CSSProperties, type Dispatch, type SetStateAction } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type Dispatch, type SetStateAction } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   type AppState,
@@ -23,7 +23,6 @@ import {
   REFLECTION_CATEGORY_META,
   NAV_STANDALONE,
   NAV_GROUPS,
-  TAB_LABELS,
   TEAM_MEMBERS,
   freshDraftQuestions,
   initialState,
@@ -371,118 +370,138 @@ export default function InternDashboard() {
   }
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", background: "oklch(0.97 0.014 75)", color: INK_TEXT }}>
-      <Sidebar state={state} setState={setState} />
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "oklch(0.97 0.014 75)", color: INK_TEXT }}>
+      <TopNav state={state} setState={setState} saveStatus={saveStatus} onExportFull={exportFullPdf} />
 
-      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
-        <div style={{ background: "white", borderBottom: `1px solid ${BORDER}`, padding: "14px 28px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20, flexWrap: "wrap" }}>
-          <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.01em", flex: "none" }}>{TAB_LABELS[state.activeTab]}</div>
-          <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 7, ...FIELD, color: MUTED, minWidth: 180, cursor: "text" }} title="Search — coming soon">
-              <span aria-hidden>🔍</span>
-              <span style={{ fontSize: 13 }}>Search…</span>
-            </div>
-            <div className="ghi-btn-ghost" style={{ width: 32, height: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", cursor: "default", fontSize: 15 }} title="Notifications — coming soon">
-              🔔
-            </div>
-            <div style={{ fontSize: 11.5, color: saveStatus === "error" ? "oklch(0.5 0.16 25)" : MUTED, whiteSpace: "nowrap" }}>
-              {saveStatus === "saving" && "Saving…"}
-              {saveStatus === "saved" && "Saved"}
-              {saveStatus === "error" && "Save failed — check connection"}
-            </div>
-            <div style={{ display: "flex", alignItems: "center", cursor: "default" }} title="Grace Soegiarto + Ethan Maxey">
-              <div style={{ width: 26, height: 26, borderRadius: "50%", background: MAROON, color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10.5, fontWeight: 700, border: "2px solid white" }}>GS</div>
-              <div style={{ width: 26, height: 26, borderRadius: "50%", background: MAROON_DEEP, color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10.5, fontWeight: 700, border: "2px solid white", marginLeft: -8 }}>EM</div>
-            </div>
-            <div onClick={exportFullPdf} className="ghi-btn-primary" style={{ padding: "9px 16px", borderRadius: 9, fontSize: 12.5, fontWeight: 600, color: "white", background: MAROON, cursor: "pointer", whiteSpace: "nowrap" }}>
-              Export full internship PDF
-            </div>
-          </div>
-        </div>
-
-        <div style={{ flex: 1, width: "100%", maxWidth: 1320, margin: "0 auto", padding: "28px 24px 64px", display: "flex", flexDirection: "column", gap: 20 }}>
-          {state.activeTab === "dashboard" && (
-            <DashboardTab state={state} setState={setState} activePeriod={activePeriod} />
-          )}
-          {state.activeTab === "scorecard" && (
-            <ScorecardTab state={state} setState={setState} activePeriod={activePeriod} onExportPeriod={() => exportPeriodPdf(activePeriod.id)} />
-          )}
-          {state.activeTab === "journal" && <JournalTab state={state} setState={setState} />}
-          {state.activeTab === "okrs" && <GoalsTab state={state} setState={setState} />}
-          {state.activeTab === "priorities" && <PrioritiesTab state={state} setState={setState} />}
-          {state.activeTab === "reflections" && <ReflectionsTab state={state} setState={setState} />}
-          {state.activeTab === "feedback" && <FeedbackTab state={state} setState={setState} />}
-          {state.activeTab === "reviews" && <ReviewsTab state={state} />}
-          {state.activeTab === "reference" && <ReferenceTab state={state} setState={setState} />}
-          {state.activeTab === "saved" && <SavedTab />}
-        </div>
+      <div style={{ flex: 1, width: "100%", maxWidth: 1320, margin: "0 auto", padding: "28px 24px 64px", display: "flex", flexDirection: "column", gap: 20 }}>
+        {state.activeTab === "dashboard" && (
+          <DashboardTab state={state} setState={setState} activePeriod={activePeriod} />
+        )}
+        {state.activeTab === "scorecard" && (
+          <ScorecardTab state={state} setState={setState} activePeriod={activePeriod} onExportPeriod={() => exportPeriodPdf(activePeriod.id)} />
+        )}
+        {state.activeTab === "journal" && <JournalTab state={state} setState={setState} />}
+        {state.activeTab === "okrs" && <GoalsTab state={state} setState={setState} />}
+        {state.activeTab === "priorities" && <PrioritiesTab state={state} setState={setState} />}
+        {state.activeTab === "reflections" && <ReflectionsTab state={state} setState={setState} />}
+        {state.activeTab === "feedback" && <FeedbackTab state={state} setState={setState} />}
+        {state.activeTab === "reviews" && <ReviewsTab state={state} />}
+        {state.activeTab === "reference" && <ReferenceTab state={state} setState={setState} />}
+        {state.activeTab === "saved" && <SavedTab />}
       </div>
     </div>
   );
 }
 
-function Sidebar({ state, setState }: { state: AppState; setState: SetAppState }) {
-  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
-  function toggleGroup(id: string) {
-    setCollapsedGroups((c) => ({ ...c, [id]: !c[id] }));
+function TopNav({ state, setState, saveStatus, onExportFull }: { state: AppState; setState: SetAppState; saveStatus: "idle" | "saving" | "saved" | "error"; onExportFull: () => void }) {
+  const [openGroup, setOpenGroup] = useState<string | null>(null);
+  const navRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function onDocClick(e: MouseEvent) {
+      if (navRef.current && !navRef.current.contains(e.target as Node)) setOpenGroup(null);
+    }
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, []);
+
+  function selectTab(id: TabId) {
+    setState((s) => ({ ...s, activeTab: id }));
+    setOpenGroup(null);
   }
-  function renderItem(item: NavItem, indent: boolean) {
-    const active = state.activeTab === item.id;
+
+  function renderMenuItem(item: NavItem) {
     if (item.disabled) {
       return (
         <div
           key={item.id}
           title="Coming soon"
-          style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 12px", marginLeft: indent ? 10 : 0, borderRadius: 8, fontSize: 13, fontWeight: 500, color: "oklch(0.72 0.01 50)", cursor: "not-allowed" }}
+          style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 7, fontSize: 13, fontWeight: 500, color: "oklch(0.72 0.01 50)", cursor: "not-allowed" }}
         >
           <span>{item.label}</span>
           <span style={{ marginLeft: "auto", fontSize: 9.5, fontWeight: 700, color: "oklch(0.6 0.01 50)", background: "oklch(0.94 0.008 55)", padding: "2px 6px", borderRadius: 999, letterSpacing: "0.03em" }}>SOON</span>
         </div>
       );
     }
+    const active = state.activeTab === item.id;
     return (
       <div
         key={item.id}
-        onClick={() => setState((s) => ({ ...s, activeTab: item.id }))}
-        className="ghi-sidebar-item"
-        style={{ padding: "7px 12px", marginLeft: indent ? 10 : 0, borderRadius: 8, fontSize: 13, fontWeight: active ? 700 : 500, color: active ? MAROON : "oklch(0.4 0.015 50)", background: active ? MAROON_TINT : "transparent", cursor: "pointer" }}
+        onClick={() => selectTab(item.id)}
+        className="ghi-btn-ghost"
+        style={{ padding: "8px 10px", borderRadius: 7, fontSize: 13, fontWeight: active ? 700 : 500, color: active ? MAROON : "oklch(0.35 0.015 50)", background: active ? MAROON_TINT : "transparent", cursor: "pointer", whiteSpace: "nowrap" }}
       >
         {item.label}
       </div>
     );
   }
 
+  const dashboardActive = state.activeTab === NAV_STANDALONE.id;
+
   return (
-    <div style={{ width: 224, flex: "none", background: "white", borderRight: `1px solid ${BORDER}`, display: "flex", flexDirection: "column", padding: "18px 12px", gap: 3 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "0 8px", marginBottom: 20 }}>
-        <div style={{ width: 30, height: 30, borderRadius: 8, background: MAROON, color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 600, fontFamily: SERIF, flex: "none" }}>G</div>
+    <div style={{ background: "white", borderBottom: `1px solid ${BORDER}`, padding: "14px 28px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 200 }}>
+        <div style={{ width: 32, height: 32, borderRadius: 8, background: MAROON, color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 600, fontFamily: SERIF, flex: "none" }}>G</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-          <div style={{ fontSize: 14.5, fontWeight: 600, fontFamily: SERIF, letterSpacing: "-0.01em", lineHeight: 1.2 }}>Intern Dashboard</div>
-          <div style={{ fontSize: 10.5, color: MUTED, lineHeight: 1.3 }}>Doeren Mayhew</div>
+          <div style={{ fontSize: 16, fontWeight: 600, fontFamily: SERIF, letterSpacing: "-0.01em", lineHeight: 1.2 }}>Intern Dashboard</div>
+          <div style={{ fontSize: 11, color: MUTED, lineHeight: 1.3 }}>Doeren Mayhew</div>
         </div>
       </div>
 
-      {renderItem(NAV_STANDALONE, false)}
+      <div ref={navRef} style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap" }}>
+        <div
+          onClick={() => selectTab(NAV_STANDALONE.id)}
+          className="ghi-nav-tab"
+          style={{ padding: "8px 12px", borderRadius: 8, fontSize: 13.5, fontWeight: dashboardActive ? 700 : 500, cursor: "pointer", color: dashboardActive ? MAROON : MUTED, background: dashboardActive ? MAROON_TINT : "transparent" }}
+        >
+          {NAV_STANDALONE.label}
+        </div>
 
-      <div style={{ height: 1, background: BORDER, margin: "10px 6px" }} />
-
-      {NAV_GROUPS.map((group) => {
-        const collapsed = !!collapsedGroups[group.id];
-        return (
-          <div key={group.id} style={{ display: "flex", flexDirection: "column", gap: 2, marginBottom: 10 }}>
-            <div
-              onClick={() => toggleGroup(group.id)}
-              className="ghi-sidebar-item"
-              style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 8, cursor: "pointer", userSelect: "none" }}
-            >
-              <span style={{ fontSize: 12 }}>{group.icon}</span>
-              <span style={{ fontSize: 11, fontWeight: 700, color: MUTED, textTransform: "uppercase", letterSpacing: "0.05em", flex: 1 }}>{group.label}</span>
-              <span className="ghi-chevron" style={{ fontSize: 9, color: MUTED, display: "inline-block", transform: collapsed ? "rotate(-90deg)" : "rotate(0deg)" }}>▾</span>
+        {NAV_GROUPS.map((group) => {
+          const groupActive = group.items.some((it) => it.id === state.activeTab);
+          const open = openGroup === group.id;
+          return (
+            <div key={group.id} style={{ position: "relative" }}>
+              <div
+                onClick={() => setOpenGroup(open ? null : group.id)}
+                className="ghi-nav-tab"
+                style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", borderRadius: 8, fontSize: 13.5, fontWeight: groupActive ? 700 : 500, cursor: "pointer", color: groupActive || open ? MAROON : MUTED, background: groupActive ? MAROON_TINT : "transparent", userSelect: "none" }}
+              >
+                <span style={{ fontSize: 12 }}>{group.icon}</span>
+                <span>{group.label}</span>
+                <span className="ghi-chevron" style={{ fontSize: 9, display: "inline-block", transform: open ? "rotate(180deg)" : "rotate(0deg)" }}>▾</span>
+              </div>
+              {open && (
+                <div style={{ position: "absolute", top: "calc(100% + 6px)", left: 0, minWidth: 210, background: "white", border: `1px solid ${BORDER}`, borderRadius: 10, boxShadow: "0 8px 24px oklch(0.2 0.02 40 / 0.14)", padding: 6, zIndex: 30, display: "flex", flexDirection: "column", gap: 2 }}>
+                  {group.items.map((item) => renderMenuItem(item))}
+                </div>
+              )}
             </div>
-            {!collapsed && group.items.map((item) => renderItem(item, true))}
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
+
+      <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 7, ...FIELD, color: MUTED, minWidth: 160, cursor: "text" }} title="Search — coming soon">
+          <span aria-hidden>🔍</span>
+          <span style={{ fontSize: 13 }}>Search…</span>
+        </div>
+        <div className="ghi-btn-ghost" style={{ width: 32, height: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", cursor: "default", fontSize: 15 }} title="Notifications — coming soon">
+          🔔
+        </div>
+        <div style={{ fontSize: 11.5, color: saveStatus === "error" ? "oklch(0.5 0.16 25)" : MUTED, whiteSpace: "nowrap" }}>
+          {saveStatus === "saving" && "Saving…"}
+          {saveStatus === "saved" && "Saved"}
+          {saveStatus === "error" && "Save failed — check connection"}
+        </div>
+        <div style={{ display: "flex", alignItems: "center", cursor: "default" }} title="Grace Soegiarto + Ethan Maxey">
+          <div style={{ width: 26, height: 26, borderRadius: "50%", background: MAROON, color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10.5, fontWeight: 700, border: "2px solid white" }}>GS</div>
+          <div style={{ width: 26, height: 26, borderRadius: "50%", background: MAROON_DEEP, color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10.5, fontWeight: 700, border: "2px solid white", marginLeft: -8 }}>EM</div>
+        </div>
+        <div onClick={onExportFull} className="ghi-btn-primary" style={{ padding: "9px 16px", borderRadius: 9, fontSize: 12.5, fontWeight: 600, color: "white", background: MAROON, cursor: "pointer", whiteSpace: "nowrap" }}>
+          Export full internship PDF
+        </div>
+      </div>
     </div>
   );
 }
