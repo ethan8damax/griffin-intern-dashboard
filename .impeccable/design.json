@@ -1,0 +1,174 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-07-14T00:00:00.000Z",
+  "title": "Design System: Griffin Intern Dashboard",
+  "extensions": {
+    "colorMeta": {
+      "maroon": {
+        "role": "primary",
+        "displayName": "Doeren Maroon",
+        "canonical": "oklch(0.32 0.13 20)",
+        "tonalRamp": [
+          "oklch(0.16 0.09 20)",
+          "oklch(0.22 0.11 20)",
+          "oklch(0.32 0.13 20)",
+          "oklch(0.4 0.15 20)",
+          "oklch(0.55 0.13 20)",
+          "oklch(0.72 0.09 20)",
+          "oklch(0.88 0.05 20)",
+          "oklch(0.96 0.02 20)"
+        ]
+      },
+      "cream": {
+        "role": "neutral",
+        "displayName": "Cream",
+        "canonical": "oklch(0.97 0.014 75)",
+        "tonalRamp": [
+          "oklch(0.22 0.02 40)",
+          "oklch(0.35 0.02 40)",
+          "oklch(0.55 0.015 50)",
+          "oklch(0.75 0.012 60)",
+          "oklch(0.88 0.012 60)",
+          "oklch(0.94 0.008 55)",
+          "oklch(0.97 0.014 75)",
+          "oklch(0.99 0.008 75)"
+        ]
+      },
+      "text-primary": {
+        "role": "neutral",
+        "displayName": "Text Ramp (Primary → Muted)",
+        "canonical": "oklch(0.22 0.02 40)",
+        "tonalRamp": [
+          "oklch(0.22 0.02 40)",
+          "oklch(0.3 0.02 40)",
+          "oklch(0.35 0.02 40)",
+          "oklch(0.4 0.015 50)",
+          "oklch(0.45 0.015 50)",
+          "oklch(0.5 0.015 50)",
+          "oklch(0.55 0.015 50)",
+          "oklch(0.65 0.012 50)"
+        ]
+      },
+      "status-green": {
+        "role": "tertiary",
+        "displayName": "On Track Green",
+        "canonical": "oklch(0.6 0.14 150)",
+        "tonalRamp": ["oklch(0.3 0.1 150)", "oklch(0.4 0.12 150)", "oklch(0.5 0.13 150)", "oklch(0.6 0.14 150)", "oklch(0.75 0.1 150)", "oklch(0.85 0.08 150)", "oklch(0.94 0.06 150)", "oklch(0.97 0.03 150)"]
+      },
+      "status-yellow": {
+        "role": "tertiary",
+        "displayName": "At Risk Amber-Yellow",
+        "canonical": "oklch(0.75 0.15 85)",
+        "tonalRamp": ["oklch(0.4 0.1 85)", "oklch(0.5 0.12 85)", "oklch(0.6 0.14 85)", "oklch(0.75 0.15 85)", "oklch(0.85 0.12 85)", "oklch(0.9 0.09 85)", "oklch(0.95 0.06 85)", "oklch(0.98 0.03 85)"]
+      },
+      "status-red": {
+        "role": "tertiary",
+        "displayName": "Off Track Red",
+        "canonical": "oklch(0.58 0.19 25)",
+        "tonalRamp": ["oklch(0.3 0.14 25)", "oklch(0.4 0.16 25)", "oklch(0.5 0.18 25)", "oklch(0.58 0.19 25)", "oklch(0.7 0.14 25)", "oklch(0.82 0.1 25)", "oklch(0.94 0.06 25)", "oklch(0.97 0.03 25)"]
+      },
+      "status-gray": {
+        "role": "neutral",
+        "displayName": "Not Yet Measured Gray",
+        "canonical": "oklch(0.6 0.012 50)",
+        "tonalRamp": ["oklch(0.35 0.015 50)", "oklch(0.45 0.015 50)", "oklch(0.5 0.012 50)", "oklch(0.6 0.012 50)", "oklch(0.75 0.01 55)", "oklch(0.85 0.008 55)", "oklch(0.94 0.008 55)", "oklch(0.98 0.004 55)"]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display (Serif)", "purpose": "The header masthead only, plus the standalone review-page headline. Never used for a stat value or table cell — see The One Serif Rule." },
+      "headline": { "displayName": "Headline", "purpose": "The four scorecard stat values and review-summary average — the largest text on any screen, always set in Inter, never the serif." },
+      "title": { "displayName": "Title", "purpose": "Card and section titles." },
+      "body": { "displayName": "Body", "purpose": "Default text weight — table cells, form values, journal entries." },
+      "label": { "displayName": "Label", "purpose": "Uppercase, tracked field/column labels." },
+      "labelMono": { "displayName": "Label Mono", "purpose": "Timestamps, Jira keys, sync status." }
+    },
+    "shadows": [
+      { "name": "tile", "value": "0 1px 2px oklch(0.2 0.02 40 / 0.05)", "purpose": "The only shadow in the system — lifts the four scorecard stat cards fractionally off the cream page." }
+    ],
+    "motion": [
+      { "name": "hover-transition", "value": "background-color 0.15s ease-out, color 0.15s ease-out, border-color 0.15s ease-out", "purpose": "Shared hover feedback for every clickable text/button/tab/x element (the .ghi-* classes in globals.css). Disabled under prefers-reduced-motion." }
+    ],
+    "breakpoints": []
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The one primary action per surface (Generate review link, Add entry, Submit review, Export).",
+      "html": "<div class=\"ds-btn-primary\" role=\"button\" tabindex=\"0\">Generate review link</div>",
+      "css": ".ds-btn-primary { display: inline-block; padding: 10px 18px; background: oklch(0.32 0.13 20); color: #ffffff; border-radius: 9px; font-size: 13px; font-weight: 700; cursor: pointer; transition: background 0.15s ease-out; } .ds-btn-primary:hover { background: oklch(0.4 0.15 20); } .ds-btn-primary:focus-visible { outline: 2px solid oklch(0.45 0.13 20); outline-offset: 2px; }"
+    },
+    {
+      "name": "Status Pill",
+      "kind": "chip",
+      "refersTo": "badge-status-green",
+      "description": "Fully-rounded status pill — On Track / At Risk / Off Track / Not Yet Measured, plus journal tags, review status, and Jira status, same construction with swapped color pairs.",
+      "html": "<span class=\"ds-pill-green\">🟢 On Track</span>",
+      "css": ".ds-pill-green { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 999px; background: oklch(0.94 0.06 150); color: oklch(0.6 0.14 150); }"
+    },
+    {
+      "name": "Header / Nav",
+      "kind": "nav",
+      "refersTo": "nav-tab-active",
+      "description": "White top bar: maroon square logo mark + serif wordmark, plain-text nav tabs (active = maroon text + underline), two-person avatar chip, primary Export button.",
+      "html": "<div class=\"ds-header\"><div class=\"ds-logo\">G</div><div class=\"ds-nav-tab ds-nav-tab--active\">Scorecard</div><div class=\"ds-nav-tab\">Journal</div><div class=\"ds-avatar\">GS</div></div>",
+      "css": ".ds-header { display: flex; align-items: center; gap: 20px; background: #ffffff; border-bottom: 1px solid oklch(0.9 0.012 60); padding: 14px 28px; } .ds-logo { width: 32px; height: 32px; border-radius: 8px; background: oklch(0.32 0.13 20); color: #fff; display: flex; align-items: center; justify-content: center; font-family: 'Source Serif 4', Georgia, serif; font-weight: 600; } .ds-nav-tab { font-size: 13.5px; font-weight: 500; color: oklch(0.55 0.015 50); cursor: pointer; padding-bottom: 4px; border-bottom: 2px solid transparent; transition: color 0.15s ease-out; } .ds-nav-tab--active, .ds-nav-tab:hover { color: oklch(0.32 0.13 20); } .ds-nav-tab--active { font-weight: 700; border-bottom-color: oklch(0.32 0.13 20); } .ds-avatar { width: 26px; height: 26px; border-radius: 999px; background: oklch(0.32 0.13 20); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 10.5px; font-weight: 700; border: 2px solid #fff; }"
+    },
+    {
+      "name": "Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "The base container for every section — white surface on cream, hairline border, no shadow.",
+      "html": "<div class=\"ds-card\"><div class=\"ds-card-title\">Current Period Scorecard</div><div class=\"ds-card-sub\">Period: June 2026 — fill in the Actual column and set Status each cycle</div></div>",
+      "css": ".ds-card { background: #ffffff; border: 1px solid oklch(0.9 0.012 60); border-radius: 12px; padding: 20px 22px; } .ds-card-title { font-size: 15px; font-weight: 700; margin-bottom: 2px; color: oklch(0.22 0.02 40); } .ds-card-sub { font-size: 12px; color: oklch(0.55 0.015 50); }"
+    },
+    {
+      "name": "Stat Tile with Sparkline",
+      "kind": "custom",
+      "refersTo": "headline",
+      "description": "Scorecard stat card: label, big Inter value, target, and a 64x24 inline-SVG sparkline shown only once a metric has ≥2 periods of numeric history.",
+      "html": "<div class=\"ds-stat\"><div class=\"ds-stat-label\">On-time delivery</div><div class=\"ds-stat-value\">100%</div><div class=\"ds-stat-target\">Target ≥ 90%</div></div>",
+      "css": ".ds-stat { background: #ffffff; border: 1px solid oklch(0.9 0.012 60); border-radius: 12px; padding: 14px 16px; box-shadow: 0 1px 2px oklch(0.2 0.02 40 / 0.05); } .ds-stat-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: oklch(0.5 0.015 50); } .ds-stat-value { font-size: 22px; font-weight: 800; color: oklch(0.22 0.02 40); letter-spacing: -0.01em; } .ds-stat-target { font-size: 11px; color: oklch(0.55 0.015 50); }"
+    },
+    {
+      "name": "Score Picker",
+      "kind": "custom",
+      "refersTo": "score-picker",
+      "description": "10-tile 1–10 score selector, identical in the inline review form and the standalone shared review link.",
+      "html": "<div class=\"ds-score-picker\"><div class=\"ds-score-tile\">1</div><div class=\"ds-score-tile ds-score-tile--selected\">2</div><div class=\"ds-score-tile\">3</div></div>",
+      "css": ".ds-score-picker { display: flex; gap: 8px; } .ds-score-tile { width: 30px; height: 30px; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 12.5px; font-weight: 700; cursor: pointer; border: 1px solid oklch(0.88 0.012 55); background: #ffffff; color: oklch(0.4 0.015 50); transition: background 0.15s ease-out, color 0.15s ease-out; } .ds-score-tile--selected { border-color: oklch(0.32 0.13 20); background: oklch(0.32 0.13 20); color: #ffffff; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Analyst's Ledger, in the Firm's Own Ink",
+    "overview": "This is still a working ledger, not a marketing surface — but it now speaks in the actual visual language of the engagement it serves: Doeren Mayhew's warm cream and maroon, a serif masthead, and a pill-badge status vocabulary borrowed directly from the firm's own client/staff/partner portals. Where the previous iteration used a cool, neutral navy to stay generic, this one commits to a real institutional identity because the interns work inside that identity every day.\n\nThe system still explicitly rejects the vocabulary of a generic SaaS marketing site and of legacy enterprise BI. What changed is the palette and a handful of surface treatments, not the underlying discipline: one accent color still carries every primary action, the four-state status vocabulary is still the only other meaningful color, and density still wins over decoration everywhere except the masthead.",
+    "keyCharacteristics": [
+      "One accent color (maroon) carries all primary actions and active states — matched to the firm's actual brand red instead of a neutral navy.",
+      "A warm cream page background with true-white cards — the contrast between the two, not shadow, separates surfaces.",
+      "Exactly one serif moment: the masthead wordmark. Everything else stays in Inter.",
+      "Fully-rounded pill badges for every status/tag, matching the firm's own portal screens.",
+      "Trend sparklines on the scorecard stat cards, rendered only once a metric has ≥2 periods of real data.",
+      "Every clickable element now has a real hover state, closing the biggest gap named in the last design review."
+    ],
+    "rules": [
+      { "name": "The One Accent Rule", "body": "Maroon is the only saturated-enough-to-notice color outside the status system.", "section": "colors" },
+      { "name": "The Status Means One Thing Rule", "body": "Green/yellow/red/gray always mean On Track / At Risk / Off Track / Not Yet Measured, in that exact color, everywhere they appear.", "section": "colors" },
+      { "name": "The One Serif Rule", "body": "Source Serif 4 appears in exactly one place: the header masthead (and the standalone review headline). Every number, label, and body string stays in Inter.", "section": "typography" }
+    ],
+    "dos": [
+      "Do keep the maroon accent to primary actions and \"current selection\" states only.",
+      "Do keep the four status colors meaning exactly one thing each, everywhere they appear.",
+      "Do keep Source Serif 4 to the header masthead only.",
+      "Do render trend sparklines only from real historical data (≥2 periods).",
+      "Do give every clickable element a real hover state."
+    ],
+    "donts": [
+      "Don't introduce gradient heroes, hero-metric templates, or bouncy marketing-site motion.",
+      "Don't stack multiple accent/status colors on one surface, or nest cards inside cards.",
+      "Don't add cartoonish illustration, mascot-rounded corners, or bright primary colors outside the status system.",
+      "Don't use border-left/border-right as a colored accent stripe.",
+      "Don't set a second serif moment anywhere outside the masthead."
+    ]
+  }
+}

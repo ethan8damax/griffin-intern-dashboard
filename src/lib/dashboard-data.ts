@@ -186,18 +186,18 @@ export const STATUS_META: Record<Status, { emoji: string; label: string; color: 
   green: { emoji: "🟢", label: "On Track", color: "oklch(0.6 0.14 150)", bg: "oklch(0.94 0.06 150)" },
   yellow: { emoji: "🟡", label: "At Risk", color: "oklch(0.75 0.15 85)", bg: "oklch(0.95 0.06 85)" },
   red: { emoji: "🔴", label: "Off Track", color: "oklch(0.58 0.19 25)", bg: "oklch(0.94 0.06 25)" },
-  gray: { emoji: "⚪", label: "Not Yet Measured", color: "oklch(0.65 0.01 258)", bg: "oklch(0.94 0.006 258)" },
+  gray: { emoji: "⚪", label: "Not Yet Measured", color: "oklch(0.6 0.012 50)", bg: "oklch(0.94 0.008 55)" },
 };
 
 export const JOURNAL_TAG_META: Record<JournalType, { label: string; bg: string; color: string }> = {
   win: { label: "WIN", bg: "oklch(0.94 0.06 150)", color: "oklch(0.4 0.1 150)" },
   blocker: { label: "BLOCKER", bg: "oklch(0.94 0.06 25)", color: "oklch(0.45 0.14 25)" },
-  checkin: { label: "CHECK-IN", bg: "oklch(0.94 0.03 258)", color: "oklch(0.4 0.1 258)" },
-  note: { label: "NOTE", bg: "oklch(0.94 0.006 258)", color: "oklch(0.45 0.01 258)" },
+  checkin: { label: "CHECK-IN", bg: "oklch(0.93 0.045 20)", color: "oklch(0.38 0.11 20)" },
+  note: { label: "NOTE", bg: "oklch(0.94 0.008 55)", color: "oklch(0.45 0.012 50)" },
 };
 
 export const REFLECTION_CATEGORY_META: Record<ReflectionCategory, { label: string; sectionTitle: string; sectionSub: string; bg: string; color: string }> = {
-  self: { label: "SELF", sectionTitle: "Self-Reflections", sectionSub: "How did I do this week — what am I proud of, what would I do differently?", bg: "oklch(0.94 0.03 258)", color: "oklch(0.4 0.1 258)" },
+  self: { label: "SELF", sectionTitle: "Self-Reflections", sectionSub: "How did I do this week — what am I proud of, what would I do differently?", bg: "oklch(0.93 0.045 20)", color: "oklch(0.38 0.11 20)" },
   peer: { label: "PEER", sectionTitle: "Reflections on Each Other", sectionSub: "Feedback for a teammate — specific, kind, and useful for next week", bg: "oklch(0.94 0.06 150)", color: "oklch(0.4 0.1 150)" },
   work: { label: "TEAM / WORK", sectionTitle: "Reflections on the Work", sectionSub: "How the engagement/process went — what to keep, what to change", bg: "oklch(0.95 0.06 85)", color: "oklch(0.5 0.12 85)" },
 };
@@ -205,8 +205,8 @@ export const REFLECTION_CATEGORY_META: Record<ReflectionCategory, { label: strin
 export const JIRA_ISSUE_STATUS_META: Record<JiraStatus, { bg: string; color: string }> = {
   Done: { bg: "oklch(0.94 0.06 150)", color: "oklch(0.4 0.1 150)" },
   "In Review": { bg: "oklch(0.95 0.06 85)", color: "oklch(0.5 0.12 85)" },
-  "In Progress": { bg: "oklch(0.95 0.03 258)", color: "oklch(0.4 0.1 258)" },
-  "To Do": { bg: "oklch(0.94 0.006 258)", color: "oklch(0.5 0.01 258)" },
+  "In Progress": { bg: "oklch(0.93 0.045 20)", color: "oklch(0.38 0.11 20)" },
+  "To Do": { bg: "oklch(0.94 0.008 55)", color: "oklch(0.5 0.012 50)" },
 };
 
 export const NAV_TABS: { id: TabId; label: string }[] = [
@@ -371,7 +371,7 @@ export function initialState(): AppState {
   };
 }
 
-export const STORAGE_KEY = "griffin-intern-dashboard-v1";
+export const DASHBOARD_DOC_ID = "main";
 
 export function normalizeState(raw: Partial<AppState>): AppState {
   const base = initialState();

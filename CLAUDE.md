@@ -7,7 +7,7 @@ Intern Analyst KPI & Metrics Dashboard for Grace Soegiarto + Ethan Maxey (Griffi
 ## Stack
 
 - Next.js 16 (App Router, Turbopack), React 19, TypeScript, Tailwind v4 (Tailwind is only used for the build pipeline/reset — the dashboard itself is styled with inline `style` objects using `oklch()` colors, matching the original design 1:1).
-- No backend yet. All state lives in one `useState<AppState>` in `src/components/intern-dashboard.tsx` and is persisted to `localStorage` (`griffin-intern-dashboard-v1`). This is a deliberate shortcut — see `ponytail:` comments in that file.
+- Firebase (Firestore) backend. All state lives in one `useState<AppState>` in `src/components/intern-dashboard.tsx`, fetched on load and overwritten (debounced ~500ms) into a single `dashboard/main` document via `src/lib/firebase.ts`. No auth — see the "Known shortcuts" section below.
 
 ## Structure
 
@@ -17,7 +17,9 @@ Intern Analyst KPI & Metrics Dashboard for Grace Soegiarto + Ethan Maxey (Griffi
 
 ## Known shortcuts / upgrade path
 
-- **Persistence**: localStorage only — single browser, single device, no real multi-user sharing. Upgrade path: Supabase (Postgres + row-level auth), swap the two `localStorage` `useEffect`s in `intern-dashboard.tsx` for reads/writes against a `dashboard_state` table.
+- **Persistence**: one shared `dashboard/main` document (single JSON blob) in Firestore — no per-user documents, no history/versioning. Fine for the current 2-4 known users; if usage grows, split into real collections once querying individual fields (not just the whole blob) actually matters.
+- **Auth**: none. Firestore security rules (`firestore.rules`) allow public read/write on the `dashboard` collection, matching the no-login review-link flow. Upgrade path: Firebase Auth (email/magic-link) for Grace/Ethan, rules scoped to signed-in users, once the dashboard needs to stop being fully public-by-URL.
+- **Sync**: refetch-on-page-load only, no realtime listener (`onSnapshot`). Two tabs open at once means last-write-wins with no merge. Upgrade path: an `onSnapshot` subscription on `dashboard/main` if concurrent editing becomes common.
 - **Reviews**: "sending" a review link just copies a URL (`?review=<token>`) to the clipboard — no email/notification is sent.
 - **Jira sync tab**: fully mocked sample data, not a real integration. Marked in the Reference tab UI itself.
 
@@ -29,4 +31,4 @@ Intern Analyst KPI & Metrics Dashboard for Grace Soegiarto + Ethan Maxey (Griffi
 
 ## Deployment
 
-Deployed on Vercel, connected to the `main` branch of the GitHub repo for auto-deploy on push.
+Deployed on Vercel, connected to the `main` branch of the GitHub repo for auto-deploy on push. The `NEXT_PUBLIC_FIREBASE_*` env vars (see `.env.local`, gitignored) must also be set in the Vercel project settings — they aren't committed, so a fresh deploy has none of them until they're added there.
