@@ -154,7 +154,7 @@ export interface DraftJournalEntry {
   text: string;
 }
 
-export type TabId = "scorecard" | "journal" | "okrs" | "priorities" | "reflections" | "reviews" | "reference";
+export type TabId = "dashboard" | "scorecard" | "journal" | "okrs" | "priorities" | "reflections" | "feedback" | "reviews" | "reference" | "saved";
 
 export interface AppState {
   activeTab: TabId;
@@ -209,15 +209,60 @@ export const JIRA_ISSUE_STATUS_META: Record<JiraStatus, { bg: string; color: str
   "To Do": { bg: "oklch(0.94 0.008 55)", color: "oklch(0.5 0.012 50)" },
 };
 
-export const NAV_TABS: { id: TabId; label: string }[] = [
-  { id: "scorecard", label: "Scorecard" },
-  { id: "journal", label: "Journal" },
-  { id: "okrs", label: "Goals" },
-  { id: "priorities", label: "Weekly Priorities" },
-  { id: "reflections", label: "Weekly Reflections" },
-  { id: "reviews", label: "Reviews" },
-  { id: "reference", label: "Reference" },
+export interface NavItem {
+  id: TabId;
+  label: string;
+  disabled?: boolean;
+}
+
+export interface NavGroup {
+  id: string;
+  label: string;
+  icon: string;
+  items: NavItem[];
+}
+
+export const NAV_STANDALONE: NavItem = { id: "dashboard", label: "Dashboard" };
+
+export const NAV_GROUPS: NavGroup[] = [
+  {
+    id: "planning", label: "Planning", icon: "\u{1F3AF}",
+    items: [
+      { id: "okrs", label: "Goals" },
+      { id: "priorities", label: "Weekly Priorities" },
+      { id: "journal", label: "Journal" },
+    ],
+  },
+  {
+    id: "performance", label: "Performance", icon: "\u{1F4C8}",
+    items: [
+      { id: "scorecard", label: "Scorecard" },
+      { id: "reviews", label: "Reviews" },
+      { id: "feedback", label: "360 Feedback" },
+      { id: "reflections", label: "Weekly Reflections" },
+    ],
+  },
+  {
+    id: "resources", label: "Resources", icon: "\u{1F4DA}",
+    items: [
+      { id: "reference", label: "Reference" },
+      { id: "saved", label: "Saved", disabled: true },
+    ],
+  },
 ];
+
+export const TAB_LABELS: Record<TabId, string> = {
+  dashboard: "Dashboard",
+  scorecard: "Scorecard",
+  journal: "Journal",
+  okrs: "Goals",
+  priorities: "Weekly Priorities",
+  reflections: "Weekly Reflections",
+  feedback: "360 Feedback",
+  reviews: "Reviews",
+  reference: "Reference",
+  saved: "Saved",
+};
 
 export const TEAM_MEMBERS = ["Grace Soegiarto", "Ethan Maxey"];
 
@@ -241,7 +286,7 @@ export function freshDraftQuestions(subjectName?: string): ReviewDraft {
 
 export function initialState(): AppState {
   return {
-    activeTab: "scorecard",
+    activeTab: "dashboard",
     activePeriodId: "p1",
     periods: [
       {

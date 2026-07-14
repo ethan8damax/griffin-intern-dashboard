@@ -14,12 +14,16 @@ import {
   type GoalOwner,
   type PriorityStatus,
   type ReflectionCategory,
+  type TabId,
+  type NavItem,
   MONTH_NAMES,
   STATUS_META,
   JOURNAL_TAG_META,
   JIRA_ISSUE_STATUS_META,
   REFLECTION_CATEGORY_META,
-  NAV_TABS,
+  NAV_STANDALONE,
+  NAV_GROUPS,
+  TAB_LABELS,
   TEAM_MEMBERS,
   freshDraftQuestions,
   initialState,
@@ -367,56 +371,210 @@ export default function InternDashboard() {
   }
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "oklch(0.97 0.014 75)", color: INK_TEXT }}>
-      <div style={{ background: "white", borderBottom: `1px solid ${BORDER}`, padding: "14px 28px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20, flexWrap: "wrap" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 220 }}>
-          <div style={{ width: 32, height: 32, borderRadius: 8, background: MAROON, color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 600, fontFamily: SERIF, flex: "none" }}>G</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
-            <div style={{ fontSize: 18, fontWeight: 600, fontFamily: SERIF, letterSpacing: "-0.01em" }}>Intern Analyst Dashboard</div>
-            <div style={{ fontSize: 11.5, color: MUTED }}>Griffin Global · Doeren Mayhew engagement</div>
+    <div style={{ minHeight: "100vh", display: "flex", background: "oklch(0.97 0.014 75)", color: INK_TEXT }}>
+      <Sidebar state={state} setState={setState} />
+
+      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
+        <div style={{ background: "white", borderBottom: `1px solid ${BORDER}`, padding: "14px 28px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20, flexWrap: "wrap" }}>
+          <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.01em", flex: "none" }}>{TAB_LABELS[state.activeTab]}</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 7, ...FIELD, color: MUTED, minWidth: 180, cursor: "text" }} title="Search — coming soon">
+              <span aria-hidden>🔍</span>
+              <span style={{ fontSize: 13 }}>Search…</span>
+            </div>
+            <div className="ghi-btn-ghost" style={{ width: 32, height: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", cursor: "default", fontSize: 15 }} title="Notifications — coming soon">
+              🔔
+            </div>
+            <div style={{ fontSize: 11.5, color: saveStatus === "error" ? "oklch(0.5 0.16 25)" : MUTED, whiteSpace: "nowrap" }}>
+              {saveStatus === "saving" && "Saving…"}
+              {saveStatus === "saved" && "Saved"}
+              {saveStatus === "error" && "Save failed — check connection"}
+            </div>
+            <div style={{ display: "flex", alignItems: "center", cursor: "default" }} title="Grace Soegiarto + Ethan Maxey">
+              <div style={{ width: 26, height: 26, borderRadius: "50%", background: MAROON, color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10.5, fontWeight: 700, border: "2px solid white" }}>GS</div>
+              <div style={{ width: 26, height: 26, borderRadius: "50%", background: MAROON_DEEP, color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10.5, fontWeight: 700, border: "2px solid white", marginLeft: -8 }}>EM</div>
+            </div>
+            <div onClick={exportFullPdf} className="ghi-btn-primary" style={{ padding: "9px 16px", borderRadius: 9, fontSize: 12.5, fontWeight: 600, color: "white", background: MAROON, cursor: "pointer", whiteSpace: "nowrap" }}>
+              Export full internship PDF
+            </div>
           </div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 22, flexWrap: "wrap" }}>
-          <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
-            {NAV_TABS.map((tab) => {
-              const active = state.activeTab === tab.id;
-              return (
-                <div
-                  key={tab.id}
-                  className="ghi-nav-tab"
-                  onClick={() => setState((s) => ({ ...s, activeTab: tab.id }))}
-                  style={{ fontSize: 13.5, fontWeight: active ? 700 : 500, cursor: "pointer", whiteSpace: "nowrap", color: active ? MAROON : MUTED, paddingBottom: 4, borderBottom: active ? `2px solid ${MAROON}` : "2px solid transparent" }}
-                >
-                  {tab.label}
-                </div>
-              );
-            })}
+
+        <div style={{ flex: 1, width: "100%", maxWidth: 1320, margin: "0 auto", padding: "28px 24px 64px", display: "flex", flexDirection: "column", gap: 20 }}>
+          {state.activeTab === "dashboard" && (
+            <DashboardTab state={state} setState={setState} activePeriod={activePeriod} />
+          )}
+          {state.activeTab === "scorecard" && (
+            <ScorecardTab state={state} setState={setState} activePeriod={activePeriod} onExportPeriod={() => exportPeriodPdf(activePeriod.id)} />
+          )}
+          {state.activeTab === "journal" && <JournalTab state={state} setState={setState} />}
+          {state.activeTab === "okrs" && <GoalsTab state={state} setState={setState} />}
+          {state.activeTab === "priorities" && <PrioritiesTab state={state} setState={setState} />}
+          {state.activeTab === "reflections" && <ReflectionsTab state={state} setState={setState} />}
+          {state.activeTab === "feedback" && <FeedbackTab state={state} setState={setState} />}
+          {state.activeTab === "reviews" && <ReviewsTab state={state} />}
+          {state.activeTab === "reference" && <ReferenceTab state={state} setState={setState} />}
+          {state.activeTab === "saved" && <SavedTab />}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Sidebar({ state, setState }: { state: AppState; setState: SetAppState }) {
+  function renderItem(item: NavItem, indent: boolean) {
+    const active = state.activeTab === item.id;
+    if (item.disabled) {
+      return (
+        <div
+          key={item.id}
+          title="Coming soon"
+          style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 12px", marginLeft: indent ? 10 : 0, borderRadius: 8, fontSize: 13, fontWeight: 500, color: "oklch(0.72 0.01 50)", cursor: "not-allowed" }}
+        >
+          <span>{item.label}</span>
+          <span style={{ marginLeft: "auto", fontSize: 9.5, fontWeight: 700, color: "oklch(0.6 0.01 50)", background: "oklch(0.94 0.008 55)", padding: "2px 6px", borderRadius: 999, letterSpacing: "0.03em" }}>SOON</span>
+        </div>
+      );
+    }
+    return (
+      <div
+        key={item.id}
+        onClick={() => setState((s) => ({ ...s, activeTab: item.id }))}
+        className="ghi-sidebar-item"
+        style={{ padding: "7px 12px", marginLeft: indent ? 10 : 0, borderRadius: 8, fontSize: 13, fontWeight: active ? 700 : 500, color: active ? MAROON : "oklch(0.4 0.015 50)", background: active ? MAROON_TINT : "transparent", cursor: "pointer" }}
+      >
+        {item.label}
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ width: 224, flex: "none", background: "white", borderRight: `1px solid ${BORDER}`, display: "flex", flexDirection: "column", padding: "18px 12px", gap: 3 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "0 8px", marginBottom: 20 }}>
+        <div style={{ width: 30, height: 30, borderRadius: 8, background: MAROON, color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 600, fontFamily: SERIF, flex: "none" }}>G</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+          <div style={{ fontSize: 14.5, fontWeight: 600, fontFamily: SERIF, letterSpacing: "-0.01em", lineHeight: 1.2 }}>Intern Dashboard</div>
+          <div style={{ fontSize: 10.5, color: MUTED, lineHeight: 1.3 }}>Doeren Mayhew</div>
+        </div>
+      </div>
+
+      {renderItem(NAV_STANDALONE, false)}
+
+      <div style={{ height: 1, background: BORDER, margin: "10px 6px" }} />
+
+      {NAV_GROUPS.map((group) => (
+        <div key={group.id} style={{ display: "flex", flexDirection: "column", gap: 2, marginBottom: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px 4px" }}>
+            <span style={{ fontSize: 12 }}>{group.icon}</span>
+            <span style={{ fontSize: 11, fontWeight: 700, color: MUTED, textTransform: "uppercase", letterSpacing: "0.05em" }}>{group.label}</span>
           </div>
-          <div style={{ fontSize: 11.5, color: saveStatus === "error" ? "oklch(0.5 0.16 25)" : MUTED, whiteSpace: "nowrap" }}>
-            {saveStatus === "saving" && "Saving…"}
-            {saveStatus === "saved" && "Saved"}
-            {saveStatus === "error" && "Save failed — check connection"}
+          {group.items.map((item) => renderItem(item, true))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function DashboardTab({ state, setState, activePeriod }: { state: AppState; setState: SetAppState; activePeriod: Period }) {
+  function go(tab: TabId) {
+    setState((s) => ({ ...s, activeTab: tab }));
+  }
+  function sectionLink(label: string, tab: TabId) {
+    return (
+      <div onClick={() => go(tab)} className="ghi-btn-ghost" style={{ ...LINK_BTN, marginLeft: "auto" }}>{label} &rarr;</div>
+    );
+  }
+
+  const order: Status[] = ["green", "yellow", "red", "gray"];
+
+  const scorecardCounts: Record<Status, number> = { green: 0, yellow: 0, red: 0, gray: 0 };
+  activePeriod.scorecard.forEach((r) => { scorecardCounts[r.status] += 1; });
+
+  const goalCounts: Record<Status, number> = { green: 0, yellow: 0, red: 0, gray: 0 };
+  state.okrs.forEach((o) => { goalCounts[o.status] += 1; });
+
+  const activePriorityWeek = state.priorityWeeks.find((w) => w.id === state.activePriorityWeekId) ?? state.priorityWeeks[state.priorityWeeks.length - 1];
+  const priorityCounts: Record<PriorityStatus, number> = { Done: 0, "In Progress": 0, "Not Started": 0, Blocked: 0 };
+  activePriorityWeek?.priorities.forEach((p) => { priorityCounts[p.status] += 1; });
+
+  const recentJournal = state.journal.slice(0, 3);
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+      <div style={{ fontSize: 12.5, color: MUTED, background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "14px 18px" }}>
+        A snapshot of where things stand across the engagement — jump into any section for the full picture.
+      </div>
+
+      <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
+        <div style={{ ...CARD, flex: 1, minWidth: 240 }}>
+          <div style={{ display: "flex", alignItems: "center", marginBottom: 10 }}>
+            <div style={SECTION_TITLE}>Scorecard — {MONTH_NAMES[activePeriod.month]} {activePeriod.year}</div>
+            {sectionLink("View scorecard", "scorecard")}
           </div>
-          <div style={{ display: "flex", alignItems: "center" }} title="Grace Soegiarto + Ethan Maxey">
-            <div style={{ width: 26, height: 26, borderRadius: "50%", background: MAROON, color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10.5, fontWeight: 700, border: "2px solid white" }}>GS</div>
-            <div style={{ width: 26, height: 26, borderRadius: "50%", background: MAROON_DEEP, color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10.5, fontWeight: 700, border: "2px solid white", marginLeft: -8 }}>EM</div>
+          <div style={{ display: "flex", gap: 10 }}>
+            {order.map((k) => (
+              <div key={k} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, flex: 1 }}>
+                <div style={{ fontSize: 20, fontWeight: 800, color: STATUS_META[k].color }}>{scorecardCounts[k]}</div>
+                <div style={{ fontSize: 10.5, color: MUTED, textAlign: "center" }}>{STATUS_META[k].label}</div>
+              </div>
+            ))}
           </div>
-          <div onClick={exportFullPdf} className="ghi-btn-primary" style={{ padding: "9px 16px", borderRadius: 9, fontSize: 12.5, fontWeight: 600, color: "white", background: MAROON, cursor: "pointer", whiteSpace: "nowrap" }}>
-            Export full internship PDF
+        </div>
+
+        <div style={{ ...CARD, flex: 1, minWidth: 240 }}>
+          <div style={{ display: "flex", alignItems: "center", marginBottom: 10 }}>
+            <div style={SECTION_TITLE}>Goals</div>
+            {sectionLink("View goals", "okrs")}
+          </div>
+          <div style={{ display: "flex", gap: 10 }}>
+            {order.map((k) => (
+              <div key={k} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, flex: 1 }}>
+                <div style={{ fontSize: 20, fontWeight: 800, color: STATUS_META[k].color }}>{goalCounts[k]}</div>
+                <div style={{ fontSize: 10.5, color: MUTED, textAlign: "center" }}>{STATUS_META[k].label}</div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
 
-      <div style={{ flex: 1, width: "100%", maxWidth: 1320, margin: "0 auto", padding: "28px 24px 64px", display: "flex", flexDirection: "column", gap: 20 }}>
-        {state.activeTab === "scorecard" && (
-          <ScorecardTab state={state} setState={setState} activePeriod={activePeriod} onExportPeriod={() => exportPeriodPdf(activePeriod.id)} />
-        )}
-        {state.activeTab === "journal" && <JournalTab state={state} setState={setState} />}
-        {state.activeTab === "okrs" && <GoalsTab state={state} setState={setState} />}
-        {state.activeTab === "priorities" && <PrioritiesTab state={state} setState={setState} />}
-        {state.activeTab === "reflections" && <ReflectionsTab state={state} setState={setState} />}
-        {state.activeTab === "reviews" && <ReviewsTab state={state} setState={setState} />}
-        {state.activeTab === "reference" && <ReferenceTab state={state} setState={setState} />}
+      {activePriorityWeek && (
+        <div style={CARD}>
+          <div style={{ display: "flex", alignItems: "center", marginBottom: 4 }}>
+            <div style={SECTION_TITLE}>This week&apos;s priorities — {formatWeekLabel(activePriorityWeek.weekOf)}</div>
+            {sectionLink("View priorities", "priorities")}
+          </div>
+          <div style={SECTION_SUB}>{priorityCounts.Done} done, {priorityCounts["In Progress"]} in progress, {priorityCounts["Not Started"]} not started, {priorityCounts.Blocked} blocked</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {activePriorityWeek.priorities.slice(0, 5).map((p) => (
+              <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13 }}>
+                <span style={{ flex: 1, color: "oklch(0.3 0.015 50)" }}>{p.text}</span>
+                <span style={{ fontSize: 11.5, color: MUTED }}>{p.owner}</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: MAROON }}>{p.status}</span>
+              </div>
+            ))}
+            {activePriorityWeek.priorities.length === 0 && <div style={{ fontSize: 12.5, color: MUTED }}>No priorities set for this week yet.</div>}
+          </div>
+        </div>
+      )}
+
+      <div style={CARD}>
+        <div style={{ display: "flex", alignItems: "center", marginBottom: 10 }}>
+          <div style={SECTION_TITLE}>Recent journal entries</div>
+          {sectionLink("View journal", "journal")}
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {recentJournal.map((entry) => {
+            const tag = JOURNAL_TAG_META[entry.type] ?? JOURNAL_TAG_META.note;
+            return (
+              <div key={entry.id} style={{ display: "flex", gap: 10, alignItems: "baseline" }}>
+                <span style={{ ...PILL, fontSize: 10.5, fontWeight: 700, padding: "2px 8px", background: tag.bg, color: tag.color, flex: "none" }}>{tag.label}</span>
+                <span style={{ fontSize: 13, color: "oklch(0.3 0.015 50)", flex: 1 }}>{entry.text}</span>
+                <span style={{ fontSize: 11, color: MUTED, flex: "none" }}>{entry.date}</span>
+              </div>
+            );
+          })}
+          {recentJournal.length === 0 && <div style={{ fontSize: 12.5, color: MUTED }}>No journal entries yet.</div>}
+        </div>
       </div>
     </div>
   );
@@ -1209,7 +1367,7 @@ function ReviewQuestionList({ questions, onRespond }: { questions: Review["quest
   );
 }
 
-function ReviewsTab({ state, setState }: { state: AppState; setState: SetAppState }) {
+function FeedbackTab({ state, setState }: { state: AppState; setState: SetAppState }) {
   const activeReview = state.activeReviewId ? state.reviews.find((r) => r.id === state.activeReviewId) ?? null : null;
 
   function updateReviewResponse(reviewId: string, qid: string, value: number | string) {
@@ -1263,23 +1421,6 @@ function ReviewsTab({ state, setState }: { state: AppState; setState: SetAppStat
       window.alert("Copy this link:\n" + url);
     }
   }
-
-  const reviewSummaries = ["Ethan Maxey", "Grace Soegiarto"].map((name) => {
-    const submitted = state.reviews.filter((r) => r.subjectName === name && r.status === "submitted");
-    const scores: number[] = [];
-    const quotes: { text: string; reviewer: string; roleSuffix: string; question: string }[] = [];
-    submitted.forEach((r) => r.questions.forEach((q) => {
-      if (q.type === "score" && typeof q.response === "number") scores.push(q.response);
-      if (q.type === "text" && q.response && String(q.response).trim()) {
-        quotes.push({ text: String(q.response), reviewer: r.reviewerName, roleSuffix: r.reviewerRole ? ` (${r.reviewerRole})` : "", question: q.text });
-      }
-    }));
-    return {
-      name, reviewCount: submitted.length,
-      avgLabel: scores.length ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1) + " / 10" : "—",
-      quotes,
-    };
-  });
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
@@ -1352,6 +1493,49 @@ function ReviewsTab({ state, setState }: { state: AppState; setState: SetAppStat
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+function ReviewsTab({ state }: { state: AppState }) {
+  const reviewSummaries = ["Ethan Maxey", "Grace Soegiarto"].map((name) => {
+    const submitted = state.reviews.filter((r) => r.subjectName === name && r.status === "submitted");
+    const scores: number[] = [];
+    const quotes: { text: string; reviewer: string; roleSuffix: string; question: string }[] = [];
+    submitted.forEach((r) => r.questions.forEach((q) => {
+      if (q.type === "score" && typeof q.response === "number") scores.push(q.response);
+      if (q.type === "text" && q.response && String(q.response).trim()) {
+        quotes.push({ text: String(q.response), reviewer: r.reviewerName, roleSuffix: r.reviewerRole ? ` (${r.reviewerRole})` : "", question: q.text });
+      }
+    }));
+    return {
+      name, reviewCount: submitted.length,
+      avgLabel: scores.length ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1) + " / 10" : "—",
+      quotes,
+    };
+  });
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+      <div style={{ fontSize: 12.5, color: MUTED, background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "14px 18px" }}>
+        A read-only look at review history and results — go to 360 Feedback to request a new review or respond to one.
+      </div>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: "oklch(0.35 0.015 50)" }}>All review requests</div>
+        {state.reviews.map((r) => (
+          <div key={r.id} style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "16px 18px", display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+            <div style={{ flex: 1, minWidth: 220 }}>
+              <div style={{ fontSize: 13.5, fontWeight: 700 }}>{r.subjectName} <span style={{ fontWeight: 500, color: MUTED }}>— reviewed by {r.reviewerName}{r.reviewerRole ? ` (${r.reviewerRole})` : ""}</span></div>
+              <div style={{ fontSize: 11.5, color: MUTED, marginTop: 2 }}>{r.questions.length} questions · requested {r.requestedDate}{r.submittedDate ? ` · submitted ${r.submittedDate}` : ""}</div>
+            </div>
+            <span style={{ ...PILL, fontSize: 11, fontWeight: 700, padding: "3px 11px", background: r.status === "submitted" ? "oklch(0.94 0.06 150)" : "oklch(0.95 0.06 85)", color: r.status === "submitted" ? "oklch(0.4 0.1 150)" : "oklch(0.5 0.12 85)" }}>
+              {r.status === "submitted" ? "Submitted" : "Pending"}
+            </span>
+          </div>
+        ))}
+        {state.reviews.length === 0 && <div style={{ fontSize: 12.5, color: MUTED }}>No reviews yet — go to 360 Feedback to request one.</div>}
+      </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         <div style={{ fontSize: 13, fontWeight: 700, color: "oklch(0.35 0.015 50)" }}>Summary for leadership</div>
@@ -1372,6 +1556,21 @@ function ReviewsTab({ state, setState }: { state: AppState; setState: SetAppStat
             ))}
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+function SavedTab() {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <div style={{ fontSize: 12.5, color: MUTED, background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "14px 18px" }}>
+        Saved isn&apos;t built yet — this is a placeholder for a future way to star and quickly get back to specific journal entries, goals, or reference definitions.
+      </div>
+      <div style={{ ...CARD, textAlign: "center", padding: "48px 22px", color: MUTED }}>
+        <div style={{ fontSize: 28, marginBottom: 10 }}>⭐</div>
+        <div style={{ fontSize: 14, fontWeight: 700, color: INK_TEXT, marginBottom: 4 }}>Nothing saved yet</div>
+        <div style={{ fontSize: 12.5 }}>Coming soon.</div>
       </div>
     </div>
   );
