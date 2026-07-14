@@ -11,13 +11,19 @@ import {
   type WorkStatus,
   type JiraStatus,
   type Review,
+  type GoalOwner,
+  type PriorityStatus,
+  type ReflectionCategory,
   MONTH_NAMES,
   STATUS_META,
   JOURNAL_TAG_META,
   JIRA_ISSUE_STATUS_META,
+  REFLECTION_CATEGORY_META,
   NAV_TABS,
+  TEAM_MEMBERS,
   freshDraftQuestions,
   initialState,
+  normalizeState,
   STORAGE_KEY,
 } from "@/lib/dashboard-data";
 
@@ -38,6 +44,21 @@ const LINK_BTN: CSSProperties = { fontSize: 12.5, fontWeight: 600, color: "oklch
 const PRIMARY_BTN: CSSProperties = { padding: "10px 18px", background: INK, color: "white", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", alignSelf: "flex-start" };
 const REMOVE_X: CSSProperties = { cursor: "pointer", color: "oklch(0.7 0.01 258)", fontSize: 15 };
 const DASHED_ADD: CSSProperties = { fontSize: 13, fontWeight: 600, color: "oklch(0.4 0.1 258)", cursor: "pointer", padding: 10, border: "1px dashed oklch(0.75 0.03 258)", borderRadius: 10, textAlign: "center", background: "white" };
+
+function formatWeekLabel(weekOf: string): string {
+  const start = new Date(weekOf + "T00:00:00");
+  if (Number.isNaN(start.getTime())) return weekOf;
+  const end = new Date(start);
+  end.setDate(end.getDate() + 4);
+  const fmt = (d: Date) => d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  return `Week of ${fmt(start)}–${fmt(end)}, ${start.getFullYear()}`;
+}
+
+function nextMonday(fromIso: string): string {
+  const d = new Date(fromIso + "T00:00:00");
+  d.setDate(d.getDate() + 7);
+  return d.toISOString().slice(0, 10);
+}
 
 function editable(value: string, onCommit: (v: string) => void) {
   return {
@@ -120,7 +141,7 @@ export default function InternDashboard() {
   useEffect(() => {
     try {
       const raw = window.localStorage.getItem(STORAGE_KEY);
-      if (raw) setState(JSON.parse(raw) as AppState);
+      if (raw) setState(normalizeState(JSON.parse(raw) as Partial<AppState>));
     } catch {
       // ponytail: corrupt/missing local storage just falls back to seed data
     }
@@ -227,14 +248,37 @@ export default function InternDashboard() {
         </div>`;
       }).join("")}
     </div>`;
-    const okrHtml = `<div style="margin-top:24px;">
-      <h2 style="font-size:18px;color:#1c2b47;margin-bottom:12px;">Goals &amp; OKRs</h2>
-      ${state.okrs.map((o, i) => `<div style="margin-bottom:14px;">
-        <div style="font-weight:700;font-size:14px;">Objective ${i + 1}: ${escapeHtml(o.objective)}</div>
+    const goalSection = (title: string, goals: AppState["okrs"]) => `<div style="margin-bottom:18px;">
+      <div style="font-size:13px;font-weight:700;color:#1c2b47;margin-bottom:8px;">${escapeHtml(title)}</div>
+      ${goals.map((o) => `<div style="margin-bottom:14px;">
+        <div style="font-weight:700;font-size:14px;">${escapeHtml(o.objective)}${o.assignee ? ` <span style="font-weight:500;color:#666;">(${escapeHtml(o.assignee)})</span>` : ""}</div>
+        <div style="font-size:11px;color:#777;margin-top:2px;">${STATUS_META[o.status].emoji} ${STATUS_META[o.status].label}${o.targetDate ? ` · target ${escapeHtml(o.targetDate)}` : ""}</div>
         <ul style="margin:6px 0 0 18px;padding:0;font-size:12.5px;color:#444;">${o.krs.map((k) => `<li>${escapeHtml(k.text)}</li>`).join("")}</ul>
       </div>`).join("")}
     </div>`;
-    openPrintWindow(buildHeaderHtml("Full internship summary") + periodsHtml + journalHtml + okrHtml, "KPI Dashboard — Full Internship Summary");
+    const okrHtml = `<div style="margin-top:24px;">
+      <h2 style="font-size:18px;color:#1c2b47;margin-bottom:12px;">Goals</h2>
+      ${goalSection("Team Goals", state.okrs.filter((o) => o.owner === "team"))}
+      ${goalSection("Individual Goals", state.okrs.filter((o) => o.owner === "individual"))}
+    </div>`;
+    const prioritiesHtml = `<div style="margin-top:24px;page-break-before:always;">
+      <h2 style="font-size:18px;color:#1c2b47;margin-bottom:12px;">Weekly Priorities</h2>
+      ${state.priorityWeeks.map((w) => `<div style="margin-bottom:16px;">
+        <div style="font-weight:700;font-size:13px;margin-bottom:6px;">${escapeHtml(formatWeekLabel(w.weekOf))}</div>
+        <ul style="margin:0 0 0 18px;padding:0;font-size:12.5px;color:#444;">${w.priorities.map((p) => `<li>${escapeHtml(p.text)} — <span style="color:#777;">${escapeHtml(p.owner)}, ${escapeHtml(p.status)}</span></li>`).join("")}</ul>
+      </div>`).join("")}
+    </div>`;
+    const reflectionsHtml = `<div style="margin-top:24px;">
+      <h2 style="font-size:18px;color:#1c2b47;margin-bottom:12px;">Weekly Reflections</h2>
+      ${state.reflectionWeeks.map((w) => `<div style="margin-bottom:16px;">
+        <div style="font-weight:700;font-size:13px;margin-bottom:6px;">${escapeHtml(formatWeekLabel(w.weekOf))}</div>
+        ${w.entries.map((e) => `<div style="margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid #eee;">
+          <div style="font-size:10.5px;font-weight:700;color:#555;">${REFLECTION_CATEGORY_META[e.category].label} · ${escapeHtml(e.author)}${e.subject ? ` about ${escapeHtml(e.subject)}` : ""}</div>
+          <div style="font-size:12.5px;margin-top:3px;">${escapeHtml(e.text)}</div>
+        </div>`).join("")}
+      </div>`).join("")}
+    </div>`;
+    openPrintWindow(buildHeaderHtml("Full internship summary") + periodsHtml + journalHtml + okrHtml + prioritiesHtml + reflectionsHtml, "KPI Dashboard — Full Internship Summary");
   }
 
   return (
@@ -267,7 +311,9 @@ export default function InternDashboard() {
           <ScorecardTab state={state} setState={setState} activePeriod={activePeriod} onExportPeriod={() => exportPeriodPdf(activePeriod.id)} />
         )}
         {state.activeTab === "journal" && <JournalTab state={state} setState={setState} />}
-        {state.activeTab === "okrs" && <OkrsTab state={state} setState={setState} />}
+        {state.activeTab === "okrs" && <GoalsTab state={state} setState={setState} />}
+        {state.activeTab === "priorities" && <PrioritiesTab state={state} setState={setState} />}
+        {state.activeTab === "reflections" && <ReflectionsTab state={state} setState={setState} />}
         {state.activeTab === "reviews" && <ReviewsTab state={state} setState={setState} />}
         {state.activeTab === "reference" && <ReferenceTab state={state} setState={setState} />}
       </div>
@@ -569,16 +615,22 @@ function JournalTab({ state, setState }: { state: AppState; setState: SetAppStat
   );
 }
 
-function OkrsTab({ state, setState }: { state: AppState; setState: SetAppState }) {
-  function addObjective() {
-    setState((s) => ({ ...s, okrs: [...s.okrs, { id: "o" + Date.now(), objective: "New objective", krs: [] }] }));
+function GoalsTab({ state, setState }: { state: AppState; setState: SetAppState }) {
+  function addObjective(owner: GoalOwner) {
+    setState((s) => ({
+      ...s,
+      okrs: [...s.okrs, { id: "o" + Date.now(), objective: owner === "team" ? "New team goal" : "New individual goal", owner, assignee: owner === "individual" ? TEAM_MEMBERS[0] : "", status: "gray" as Status, targetDate: "", krs: [] }],
+    }));
   }
   function removeObjective(id: string) {
-    if (!window.confirm("Delete this objective and all its key results? This cannot be undone.")) return;
+    if (!window.confirm("Delete this goal and all its key results? This cannot be undone.")) return;
     setState((s) => ({ ...s, okrs: s.okrs.filter((o) => o.id !== id) }));
   }
   function updateObjectiveText(id: string, value: string) {
     setState((s) => ({ ...s, okrs: s.okrs.map((o) => (o.id !== id ? o : { ...o, objective: value })) }));
+  }
+  function updateObjectiveField(id: string, field: "assignee" | "status" | "targetDate", value: string) {
+    setState((s) => ({ ...s, okrs: s.okrs.map((o) => (o.id !== id ? o : { ...o, [field]: value })) }));
   }
   function addKr(objId: string) {
     setState((s) => ({ ...s, okrs: s.okrs.map((o) => (o.id !== objId ? o : { ...o, krs: [...o.krs, { id: "k" + Date.now(), text: "[measurable result]" }] })) }));
@@ -591,31 +643,254 @@ function OkrsTab({ state, setState }: { state: AppState; setState: SetAppState }
     setState((s) => ({ ...s, okrs: s.okrs.map((o) => (o.id !== objId ? o : { ...o, krs: o.krs.map((k) => (k.id !== krId ? k : { ...k, text: value })) })) }));
   }
 
+  const statusOptions = (Object.keys(STATUS_META) as Status[]).map((k) => ({ value: k, label: `${STATUS_META[k].emoji} ${STATUS_META[k].label}` }));
+  const teamGoals = state.okrs.filter((o) => o.owner === "team");
+  const individualGoals = state.okrs.filter((o) => o.owner === "individual");
+
+  function renderGoalCard(obj: AppState["okrs"][number], index: number) {
+    return (
+      <div key={obj.id} style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "18px 22px" }}>
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 10 }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: "oklch(0.4 0.1 258)", flex: "none", marginTop: 2 }}>Goal {index + 1}</span>
+          <div style={{ flex: 1, fontSize: 15, fontWeight: 700, color: "oklch(0.22 0.02 258)" }} {...editable(obj.objective, (v) => updateObjectiveText(obj.id, v))} />
+          <span onClick={() => removeObjective(obj.id)} style={REMOVE_X}>×</span>
+        </div>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginBottom: 12, paddingLeft: 22 }}>
+          {obj.owner === "individual" && (
+            <select value={obj.assignee} onChange={(e) => updateObjectiveField(obj.id, "assignee", e.target.value)} style={{ fontSize: 12, padding: "5px 8px", borderRadius: 6, border: "1px solid oklch(0.88 0.006 258)", background: "white", cursor: "pointer" }}>
+              {TEAM_MEMBERS.map((m) => <option key={m} value={m}>{m}</option>)}
+            </select>
+          )}
+          <select value={obj.status} onChange={(e) => updateObjectiveField(obj.id, "status", e.target.value)} style={{ fontSize: 12, padding: "5px 8px", borderRadius: 6, border: "1px solid oklch(0.88 0.006 258)", background: "white", cursor: "pointer" }}>
+            {statusOptions.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+          </select>
+          <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+            <span style={{ fontSize: 11.5, color: MUTED }}>Target date</span>
+            <input type="date" value={obj.targetDate} onChange={(e) => updateObjectiveField(obj.id, "targetDate", e.target.value)} style={{ fontSize: 12, padding: "4px 6px", borderRadius: 6, border: "1px solid oklch(0.88 0.006 258)" }} />
+          </div>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, paddingLeft: 22 }}>
+          {obj.krs.map((kr) => (
+            <div key={kr.id} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ width: 5, height: 5, borderRadius: "50%", background: "oklch(0.7 0.02 258)", flex: "none" }} />
+              <div style={{ flex: 1, fontSize: 13, color: "oklch(0.35 0.01 258)" }} {...editable(kr.text, (v) => updateKrText(obj.id, kr.id, v))} />
+              <span onClick={() => removeKr(obj.id, kr.id)} style={{ ...REMOVE_X, fontSize: 13, color: "oklch(0.75 0.01 258)" }}>×</span>
+            </div>
+          ))}
+          <div onClick={() => addKr(obj.id)} style={{ fontSize: 12, fontWeight: 600, color: "oklch(0.4 0.1 258)", cursor: "pointer", marginTop: 2 }}>+ Add key result</div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <div style={{ fontSize: 12.5, color: MUTED, background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "14px 18px" }}>
-        Set 2–4 objectives per cycle. Keep them outcome-focused, aimed at growing the engagement.
+        Set 2–4 goals per cycle in each section. Keep them outcome-focused — team goals grow the engagement, individual goals grow the person.
       </div>
-      {state.okrs.map((obj, i) => (
-        <div key={obj.id} style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "18px 22px" }}>
-          <div style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 10 }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: "oklch(0.4 0.1 258)", flex: "none", marginTop: 2 }}>Objective {i + 1}</span>
-            <div style={{ flex: 1, fontSize: 15, fontWeight: 700, color: "oklch(0.22 0.02 258)" }} {...editable(obj.objective, (v) => updateObjectiveText(obj.id, v))} />
-            <span onClick={() => removeObjective(obj.id)} style={REMOVE_X}>×</span>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <div style={SECTION_TITLE}>Team Goals</div>
+        {teamGoals.map((obj, i) => renderGoalCard(obj, i))}
+        <div onClick={() => addObjective("team")} style={DASHED_ADD}>+ Add team goal</div>
+      </div>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <div style={SECTION_TITLE}>Individual Goals</div>
+        {individualGoals.map((obj, i) => renderGoalCard(obj, i))}
+        <div onClick={() => addObjective("individual")} style={DASHED_ADD}>+ Add individual goal</div>
+      </div>
+    </div>
+  );
+}
+
+function WeekPicker({ weeks, activeWeekId, onSelect, onAdd, onRemove }: { weeks: { id: string; weekOf: string }[]; activeWeekId: string; onSelect: (id: string) => void; onAdd: () => void; onRemove: (id: string) => void }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+      {weeks.map((w) => {
+        const active = w.id === activeWeekId;
+        return (
+          <div
+            key={w.id}
+            onClick={() => onSelect(w.id)}
+            style={{ padding: "7px 8px 7px 14px", borderRadius: 8, fontSize: 12.5, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 8, border: `1px solid ${active ? INK : "oklch(0.88 0.006 258)"}`, background: active ? INK : "white", color: active ? "white" : "oklch(0.35 0.01 258)" }}
+          >
+            <span>{formatWeekLabel(w.weekOf)}</span>
+            <span
+              title="Delete this week"
+              onClick={(e) => { e.stopPropagation(); onRemove(w.id); }}
+              style={{ cursor: "pointer", fontSize: 14, lineHeight: 1, padding: "2px 5px", borderRadius: 5, color: active ? "oklch(0.85 0.02 258)" : "oklch(0.6 0.01 258)" }}
+            >
+              ×
+            </span>
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 6, paddingLeft: 22 }}>
-            {obj.krs.map((kr) => (
-              <div key={kr.id} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <div style={{ width: 5, height: 5, borderRadius: "50%", background: "oklch(0.7 0.02 258)", flex: "none" }} />
-                <div style={{ flex: 1, fontSize: 13, color: "oklch(0.35 0.01 258)" }} {...editable(kr.text, (v) => updateKrText(obj.id, kr.id, v))} />
-                <span onClick={() => removeKr(obj.id, kr.id)} style={{ ...REMOVE_X, fontSize: 13, color: "oklch(0.75 0.01 258)" }}>×</span>
-              </div>
-            ))}
-            <div onClick={() => addKr(obj.id)} style={{ fontSize: 12, fontWeight: 600, color: "oklch(0.4 0.1 258)", cursor: "pointer", marginTop: 2 }}>+ Add key result</div>
+        );
+      })}
+      <div onClick={onAdd} style={{ fontSize: 12.5, fontWeight: 600, color: "oklch(0.4 0.1 258)", cursor: "pointer", padding: "7px 12px", border: "1px dashed oklch(0.7 0.03 258)", borderRadius: 8 }}>+ New week</div>
+    </div>
+  );
+}
+
+function PrioritiesTab({ state, setState }: { state: AppState; setState: SetAppState }) {
+  const activeWeek = state.priorityWeeks.find((w) => w.id === state.activePriorityWeekId) ?? state.priorityWeeks[state.priorityWeeks.length - 1];
+  const priorityOwners = [...TEAM_MEMBERS, "Team"];
+  const priorityStatusOptions: PriorityStatus[] = ["Not Started", "In Progress", "Done", "Blocked"];
+
+  function addWeek() {
+    setState((s) => {
+      const last = s.priorityWeeks[s.priorityWeeks.length - 1];
+      const id = "pw" + Date.now();
+      return { ...s, priorityWeeks: [...s.priorityWeeks, { id, weekOf: last ? nextMonday(last.weekOf) : new Date().toISOString().slice(0, 10), priorities: [] }], activePriorityWeekId: id };
+    });
+  }
+  function removeWeek(weekId: string) {
+    if (state.priorityWeeks.length <= 1) { window.alert("At least one week must remain."); return; }
+    if (!window.confirm("Delete this entire week's priorities? This cannot be undone.")) return;
+    setState((s) => {
+      const remaining = s.priorityWeeks.filter((w) => w.id !== weekId);
+      const activePriorityWeekId = s.activePriorityWeekId === weekId ? remaining[remaining.length - 1].id : s.activePriorityWeekId;
+      return { ...s, priorityWeeks: remaining, activePriorityWeekId };
+    });
+  }
+  function updateField(itemId: string, field: "text" | "owner" | "status" | "linkedGoalId", value: string) {
+    setState((s) => ({ ...s, priorityWeeks: s.priorityWeeks.map((w) => (w.id !== activeWeek.id ? w : { ...w, priorities: w.priorities.map((p) => (p.id !== itemId ? p : { ...p, [field]: field === "linkedGoalId" && value === "" ? null : value })) })) }));
+  }
+  function addPriority() {
+    setState((s) => ({ ...s, priorityWeeks: s.priorityWeeks.map((w) => (w.id !== activeWeek.id ? w : { ...w, priorities: [...w.priorities, { id: "pi" + Date.now(), text: "New priority", owner: "Team", status: "Not Started" as PriorityStatus, linkedGoalId: null }] })) }));
+  }
+  function removePriority(itemId: string) {
+    if (!window.confirm("Delete this priority? This cannot be undone.")) return;
+    setState((s) => ({ ...s, priorityWeeks: s.priorityWeeks.map((w) => (w.id !== activeWeek.id ? w : { ...w, priorities: w.priorities.filter((p) => p.id !== itemId) })) }));
+  }
+
+  const counts: Record<PriorityStatus, number> = { Done: 0, "In Progress": 0, "Not Started": 0, Blocked: 0 };
+  activeWeek.priorities.forEach((p) => { counts[p.status] += 1; });
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+      <div style={{ fontSize: 12.5, color: MUTED, background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "14px 18px" }}>
+        Set the handful of things that must happen this week. Link a priority to a goal to see how the week ladders up.
+      </div>
+      <WeekPicker weeks={state.priorityWeeks} activeWeekId={activeWeek.id} onSelect={(id) => setState((s) => ({ ...s, activePriorityWeekId: id }))} onAdd={addWeek} onRemove={removeWeek} />
+
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+        {priorityStatusOptions.map((st) => (
+          <div key={st} style={{ flex: 1, minWidth: 120, background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "12px 14px" }}>
+            <div style={LABEL}>{st}</div>
+            <div style={{ fontSize: 20, fontWeight: 800, color: "oklch(0.22 0.02 258)" }}>{counts[st]}</div>
           </div>
+        ))}
+      </div>
+
+      <div style={CARD}>
+        <div style={SECTION_TITLE}>{formatWeekLabel(activeWeek.weekOf)}</div>
+        <div style={SECTION_SUB}>Who owns it, where it stands, and — if relevant — which goal it moves forward</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {activeWeek.priorities.map((p) => (
+            <div key={p.id} style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", background: "oklch(0.97 0.004 258)", borderRadius: 10, padding: "10px 12px" }}>
+              <div style={{ flex: 1, minWidth: 200, fontSize: 13.5, fontWeight: 600 }} {...editable(p.text, (v) => updateField(p.id, "text", v))} />
+              <select value={p.owner} onChange={(e) => updateField(p.id, "owner", e.target.value)} style={{ fontSize: 12, padding: "5px 8px", borderRadius: 6, border: "1px solid oklch(0.88 0.006 258)", background: "white", cursor: "pointer" }}>
+                {priorityOwners.map((o) => <option key={o} value={o}>{o}</option>)}
+              </select>
+              <select value={p.status} onChange={(e) => updateField(p.id, "status", e.target.value)} style={{ fontSize: 12, padding: "5px 8px", borderRadius: 6, border: "1px solid oklch(0.88 0.006 258)", background: "white", cursor: "pointer" }}>
+                {priorityStatusOptions.map((opt) => <option key={opt} value={opt}>{opt}</option>)}
+              </select>
+              <select value={p.linkedGoalId ?? ""} onChange={(e) => updateField(p.id, "linkedGoalId", e.target.value)} style={{ fontSize: 12, padding: "5px 8px", borderRadius: 6, border: "1px solid oklch(0.88 0.006 258)", background: "white", cursor: "pointer", maxWidth: 220 }}>
+                <option value="">No linked goal</option>
+                {state.okrs.map((o) => <option key={o.id} value={o.id}>{o.objective.length > 40 ? o.objective.slice(0, 40) + "…" : o.objective}</option>)}
+              </select>
+              <span onClick={() => removePriority(p.id)} style={REMOVE_X}>×</span>
+            </div>
+          ))}
         </div>
-      ))}
-      <div onClick={addObjective} style={DASHED_ADD}>+ Add objective</div>
+        <div onClick={addPriority} style={{ marginTop: 12, ...LINK_BTN }}>+ Add priority</div>
+      </div>
+    </div>
+  );
+}
+
+function ReflectionsTab({ state, setState }: { state: AppState; setState: SetAppState }) {
+  const activeWeek = state.reflectionWeeks.find((w) => w.id === state.activeReflectionWeekId) ?? state.reflectionWeeks[state.reflectionWeeks.length - 1];
+  const categories: ReflectionCategory[] = ["self", "peer", "work"];
+
+  function addWeek() {
+    setState((s) => {
+      const last = s.reflectionWeeks[s.reflectionWeeks.length - 1];
+      const id = "rw" + Date.now();
+      return { ...s, reflectionWeeks: [...s.reflectionWeeks, { id, weekOf: last ? nextMonday(last.weekOf) : new Date().toISOString().slice(0, 10), entries: [] }], activeReflectionWeekId: id };
+    });
+  }
+  function removeWeek(weekId: string) {
+    if (state.reflectionWeeks.length <= 1) { window.alert("At least one week must remain."); return; }
+    if (!window.confirm("Delete this entire week's reflections? This cannot be undone.")) return;
+    setState((s) => {
+      const remaining = s.reflectionWeeks.filter((w) => w.id !== weekId);
+      const activeReflectionWeekId = s.activeReflectionWeekId === weekId ? remaining[remaining.length - 1].id : s.activeReflectionWeekId;
+      return { ...s, reflectionWeeks: remaining, activeReflectionWeekId };
+    });
+  }
+  function updateField(entryId: string, field: "author" | "subject" | "text", value: string) {
+    setState((s) => ({ ...s, reflectionWeeks: s.reflectionWeeks.map((w) => (w.id !== activeWeek.id ? w : { ...w, entries: w.entries.map((e) => (e.id !== entryId ? e : { ...e, [field]: value })) })) }));
+  }
+  function addEntry(category: ReflectionCategory) {
+    setState((s) => ({
+      ...s,
+      reflectionWeeks: s.reflectionWeeks.map((w) => (w.id !== activeWeek.id ? w : {
+        ...w,
+        entries: [...w.entries, { id: "re" + Date.now(), category, author: TEAM_MEMBERS[0], subject: category === "peer" ? TEAM_MEMBERS[1] : "", text: "" }],
+      })),
+    }));
+  }
+  function removeEntry(entryId: string) {
+    if (!window.confirm("Delete this reflection? This cannot be undone.")) return;
+    setState((s) => ({ ...s, reflectionWeeks: s.reflectionWeeks.map((w) => (w.id !== activeWeek.id ? w : { ...w, entries: w.entries.filter((e) => e.id !== entryId) })) }));
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+      <div style={{ fontSize: 12.5, color: MUTED, background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "14px 18px" }}>
+        A weekly pause to reflect honestly — on yourself, on each other, and on how the work is actually going.
+      </div>
+      <WeekPicker weeks={state.reflectionWeeks} activeWeekId={activeWeek.id} onSelect={(id) => setState((s) => ({ ...s, activeReflectionWeekId: id }))} onAdd={addWeek} onRemove={removeWeek} />
+
+      {categories.map((cat) => {
+        const meta = REFLECTION_CATEGORY_META[cat];
+        const entries = activeWeek.entries.filter((e) => e.category === cat);
+        return (
+          <div key={cat} style={CARD}>
+            <div style={SECTION_TITLE}>{meta.sectionTitle}</div>
+            <div style={SECTION_SUB}>{meta.sectionSub}</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {entries.map((entry) => (
+                <div key={entry.id} style={{ background: "oklch(0.97 0.004 258)", borderRadius: 10, padding: "12px 14px", display: "flex", flexDirection: "column", gap: 8 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 8px", borderRadius: 6, background: meta.bg, color: meta.color, flex: "none" }}>{meta.label}</span>
+                    <select value={entry.author} onChange={(e) => updateField(entry.id, "author", e.target.value)} style={{ fontSize: 12, padding: "4px 7px", borderRadius: 6, border: "1px solid oklch(0.88 0.006 258)", background: "white", cursor: "pointer" }}>
+                      {(cat === "work" ? [...TEAM_MEMBERS, "Team"] : TEAM_MEMBERS).map((m) => <option key={m} value={m}>{m}</option>)}
+                    </select>
+                    {cat === "peer" && (
+                      <>
+                        <span style={{ fontSize: 11.5, color: MUTED }}>about</span>
+                        <select value={entry.subject} onChange={(e) => updateField(entry.id, "subject", e.target.value)} style={{ fontSize: 12, padding: "4px 7px", borderRadius: 6, border: "1px solid oklch(0.88 0.006 258)", background: "white", cursor: "pointer" }}>
+                          {TEAM_MEMBERS.map((m) => <option key={m} value={m}>{m}</option>)}
+                        </select>
+                      </>
+                    )}
+                    <span onClick={() => removeEntry(entry.id)} style={{ ...REMOVE_X, marginLeft: "auto" }}>×</span>
+                  </div>
+                  <textarea
+                    value={entry.text}
+                    onChange={(e) => updateField(entry.id, "text", e.target.value)}
+                    placeholder="Write the reflection…"
+                    style={{ width: "100%", minHeight: 56, padding: "9px 11px", border: "1px solid oklch(0.88 0.006 258)", borderRadius: 8, fontSize: 13, fontFamily: "inherit", resize: "vertical", background: "white" }}
+                  />
+                </div>
+              ))}
+            </div>
+            <div onClick={() => addEntry(cat)} style={{ marginTop: 12, ...LINK_BTN }}>+ Add {cat === "self" ? "self-reflection" : cat === "peer" ? "peer reflection" : "team reflection"}</div>
+          </div>
+        );
+      })}
     </div>
   );
 }

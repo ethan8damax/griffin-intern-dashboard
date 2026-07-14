@@ -3,6 +3,9 @@ export type QuestionType = "score" | "text";
 export type JournalType = "win" | "blocker" | "checkin" | "note";
 export type WorkStatus = "Done" | "In Progress" | "Not Started" | "Blocked";
 export type JiraStatus = "Done" | "In Review" | "In Progress" | "To Do";
+export type GoalOwner = "team" | "individual";
+export type PriorityStatus = "Done" | "In Progress" | "Not Started" | "Blocked";
+export type ReflectionCategory = "self" | "peer" | "work";
 
 export interface ScoreRow {
   id: string;
@@ -47,7 +50,39 @@ export interface KeyResult {
 export interface Objective {
   id: string;
   objective: string;
+  owner: GoalOwner;
+  assignee: string;
+  status: Status;
+  targetDate: string;
   krs: KeyResult[];
+}
+
+export interface PriorityItem {
+  id: string;
+  text: string;
+  owner: string;
+  status: PriorityStatus;
+  linkedGoalId: string | null;
+}
+
+export interface PriorityWeek {
+  id: string;
+  weekOf: string;
+  priorities: PriorityItem[];
+}
+
+export interface ReflectionEntry {
+  id: string;
+  category: ReflectionCategory;
+  author: string;
+  subject: string;
+  text: string;
+}
+
+export interface ReflectionWeek {
+  id: string;
+  weekOf: string;
+  entries: ReflectionEntry[];
 }
 
 export interface KpiItem {
@@ -119,7 +154,7 @@ export interface DraftJournalEntry {
   text: string;
 }
 
-export type TabId = "scorecard" | "journal" | "okrs" | "reviews" | "reference";
+export type TabId = "scorecard" | "journal" | "okrs" | "priorities" | "reflections" | "reviews" | "reference";
 
 export interface AppState {
   activeTab: TabId;
@@ -128,6 +163,10 @@ export interface AppState {
   journal: JournalEntry[];
   draft: DraftJournalEntry;
   okrs: Objective[];
+  priorityWeeks: PriorityWeek[];
+  activePriorityWeekId: string;
+  reflectionWeeks: ReflectionWeek[];
+  activeReflectionWeekId: string;
   jiraPreview: boolean;
   kpiDefs: KpiCategory[];
   statusLegend: Record<Status, string>;
@@ -157,6 +196,12 @@ export const JOURNAL_TAG_META: Record<JournalType, { label: string; bg: string; 
   note: { label: "NOTE", bg: "oklch(0.94 0.006 258)", color: "oklch(0.45 0.01 258)" },
 };
 
+export const REFLECTION_CATEGORY_META: Record<ReflectionCategory, { label: string; sectionTitle: string; sectionSub: string; bg: string; color: string }> = {
+  self: { label: "SELF", sectionTitle: "Self-Reflections", sectionSub: "How did I do this week — what am I proud of, what would I do differently?", bg: "oklch(0.94 0.03 258)", color: "oklch(0.4 0.1 258)" },
+  peer: { label: "PEER", sectionTitle: "Reflections on Each Other", sectionSub: "Feedback for a teammate — specific, kind, and useful for next week", bg: "oklch(0.94 0.06 150)", color: "oklch(0.4 0.1 150)" },
+  work: { label: "TEAM / WORK", sectionTitle: "Reflections on the Work", sectionSub: "How the engagement/process went — what to keep, what to change", bg: "oklch(0.95 0.06 85)", color: "oklch(0.5 0.12 85)" },
+};
+
 export const JIRA_ISSUE_STATUS_META: Record<JiraStatus, { bg: string; color: string }> = {
   Done: { bg: "oklch(0.94 0.06 150)", color: "oklch(0.4 0.1 150)" },
   "In Review": { bg: "oklch(0.95 0.06 85)", color: "oklch(0.5 0.12 85)" },
@@ -167,10 +212,14 @@ export const JIRA_ISSUE_STATUS_META: Record<JiraStatus, { bg: string; color: str
 export const NAV_TABS: { id: TabId; label: string }[] = [
   { id: "scorecard", label: "Scorecard" },
   { id: "journal", label: "Journal" },
-  { id: "okrs", label: "Goals & OKRs" },
+  { id: "okrs", label: "Goals" },
+  { id: "priorities", label: "Weekly Priorities" },
+  { id: "reflections", label: "Weekly Reflections" },
   { id: "reviews", label: "Reviews" },
   { id: "reference", label: "Reference" },
 ];
+
+export const TEAM_MEMBERS = ["Grace Soegiarto", "Ethan Maxey"];
 
 export const CORE_QUESTIONS: { text: string; type: QuestionType }[] = [
   { text: "Overall performance this period", type: "score" },
@@ -223,10 +272,35 @@ export function initialState(): AppState {
     ],
     draft: { date: new Date().toISOString().slice(0, 10), author: "Grace Soegiarto", type: "checkin", text: "" },
     okrs: [
-      { id: "o1", objective: "Own a recurring client deliverable end-to-end with no oversight", krs: [{ id: "k1", text: "[measurable result]" }, { id: "k2", text: "[measurable result]" }] },
-      { id: "o2", objective: "Convert reliable delivery into expanded / additional billable scope", krs: [{ id: "k3", text: "[measurable result]" }, { id: "k4", text: "[measurable result]" }] },
-      { id: "o3", objective: "Build a reusable toolchain that cuts our cycle time on a deliverable type", krs: [{ id: "k5", text: "[measurable result]" }] },
+      { id: "o1", objective: "Own a recurring client deliverable end-to-end with no oversight", owner: "team", assignee: "", status: "yellow", targetDate: "2026-08-31", krs: [{ id: "k1", text: "[measurable result]" }, { id: "k2", text: "[measurable result]" }] },
+      { id: "o2", objective: "Convert reliable delivery into expanded / additional billable scope", owner: "team", assignee: "", status: "gray", targetDate: "2026-09-30", krs: [{ id: "k3", text: "[measurable result]" }, { id: "k4", text: "[measurable result]" }] },
+      { id: "o3", objective: "Build a reusable toolchain that cuts our cycle time on a deliverable type", owner: "team", assignee: "", status: "gray", targetDate: "2026-09-30", krs: [{ id: "k5", text: "[measurable result]" }] },
+      { id: "o4", objective: "Get fully ramped on the ATS vendor landscape research workflow", owner: "individual", assignee: "Grace Soegiarto", status: "green", targetDate: "2026-07-31", krs: [{ id: "k6", text: "Deliver ATS discovery research independently" }] },
+      { id: "o5", objective: "Take full ownership of the ClearCompany performance-management evaluation", owner: "individual", assignee: "Ethan Maxey", status: "green", targetDate: "2026-07-31", krs: [{ id: "k7", text: "Ship ClearCo perf-mgmt research with no rework" }] },
     ],
+    priorityWeeks: [
+      {
+        id: "pw1", weekOf: "2026-07-13",
+        priorities: [
+          { id: "pi1", text: "Reconcile Q2 headcount data pull", owner: "Grace Soegiarto", status: "In Progress", linkedGoalId: "o2" },
+          { id: "pi2", text: "Draft onboarding runbook template v1", owner: "Ethan Maxey", status: "In Progress", linkedGoalId: "o3" },
+          { id: "pi3", text: "Prep review summary for engagement lead", owner: "Team", status: "Not Started", linkedGoalId: null },
+        ],
+      },
+    ],
+    activePriorityWeekId: "pw1",
+    reflectionWeeks: [
+      {
+        id: "rw1", weekOf: "2026-07-13",
+        entries: [
+          { id: "re1", category: "self", author: "Grace Soegiarto", subject: "", text: "Felt confident driving the ATS research independently — next week I want to flag blockers earlier instead of sitting on them." },
+          { id: "re2", category: "self", author: "Ethan Maxey", subject: "", text: "Ramped fast on ClearCompany but spent too long polishing before sharing a draft." },
+          { id: "re3", category: "peer", author: "Grace Soegiarto", subject: "Ethan Maxey", text: "Great instincts on the perf-mgmt evaluation — would love more early drafts so I can react sooner." },
+          { id: "re4", category: "work", author: "Team", subject: "", text: "Weekly check-ins are catching risks early; still need a cleaner handoff process for evidence links on deliverables." },
+        ],
+      },
+    ],
+    activeReflectionWeekId: "rw1",
     jiraPreview: false,
     kpiDefs: [
       { id: "c1", title: "1. Delivery & Productivity", items: [
@@ -298,3 +372,24 @@ export function initialState(): AppState {
 }
 
 export const STORAGE_KEY = "griffin-intern-dashboard-v1";
+
+export function normalizeState(raw: Partial<AppState>): AppState {
+  const base = initialState();
+  return {
+    ...base,
+    ...raw,
+    okrs: (raw.okrs ?? base.okrs).map((o) => ({
+      id: o.id,
+      objective: o.objective,
+      krs: o.krs,
+      owner: (o.owner as GoalOwner | undefined) ?? "team",
+      assignee: o.assignee ?? "",
+      status: (o.status as Status | undefined) ?? "gray",
+      targetDate: o.targetDate ?? "",
+    })),
+    priorityWeeks: raw.priorityWeeks ?? base.priorityWeeks,
+    activePriorityWeekId: raw.activePriorityWeekId ?? base.activePriorityWeekId,
+    reflectionWeeks: raw.reflectionWeeks ?? base.reflectionWeeks,
+    activeReflectionWeekId: raw.activeReflectionWeekId ?? base.activeReflectionWeekId,
+  };
+}
