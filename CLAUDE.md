@@ -12,7 +12,7 @@ Intern Analyst KPI & Metrics Dashboard for Grace Soegiarto + Ethan Maxey (Griffi
 ## Structure
 
 - `src/lib/dashboard-data.ts` — all types, seed/demo data, and constants (status colors, nav tabs, etc).
-- `src/components/intern-dashboard.tsx` — the entire app: header/nav, and one component per tab (Scorecard, Journal, Goals & OKRs, Reviews, Reference). Also owns PDF export (opens a print window) and the standalone review-link flow (`?review=<token>` query param renders a bare review form, no header/nav).
+- `src/components/intern-dashboard.tsx` — the entire app: top nav (`TopNav`, with dropdown menus for the Planning/Performance/Resources groups defined in `dashboard-data.ts`), and one component per tab (Dashboard, Scorecard, Journal, Goals, Weekly Priorities, Weekly Reflections, 360 Feedback, Review Summaries, Reference, Saved — plus Profile, which has no nav entry and is only reached by clicking a person's avatar chip in the top bar, see below). Also owns PDF export (opens a print window) and the standalone review-link flow (`?review=<token>` query param renders a bare review form, no header/nav).
 - `src/app/page.tsx` — wraps the dashboard in `<Suspense>` (required for `useSearchParams`).
 
 ## Known shortcuts / upgrade path
@@ -22,6 +22,7 @@ Intern Analyst KPI & Metrics Dashboard for Grace Soegiarto + Ethan Maxey (Griffi
 - **Sync**: refetch-on-page-load only, no realtime listener (`onSnapshot`). Two tabs open at once means last-write-wins with no merge. Upgrade path: an `onSnapshot` subscription on `dashboard/main` if concurrent editing becomes common.
 - **Reviews**: "sending" a review link just copies a URL (`?review=<token>`) to the clipboard — no email/notification is sent.
 - **Jira sync tab**: fully mocked sample data, not a real integration. Marked in the Reference tab UI itself.
+- **Profile tab**: intentionally has no nav-bar entry — reached only by clicking the GS or EM avatar chip in the top bar, which sets `activeTab: "profile"` and `activeProfileName` together. It shows one person at a time; a pill pair on the page itself also switches between Grace/Ethan. Role/bio/manager/department/start-date live in `AppState.internProfiles` (keyed by name) and are inline-editable like the rest of the dashboard — no per-user login yet, so anyone with the link can edit anyone's profile. The name itself isn't editable, since it's the lookup key joined against `okrs[].assignee`, `priorityWeeks[].priorities[].owner`, `reflectionWeeks[].entries[].author/subject`, and `reviews[].subjectName` — renaming would need a real person-ID system. The goals/priorities/reflections/reviews sections stay read-only rollups; edit those from their own tabs. "KPI Score" is the average of that person's submitted review scores only, since the Scorecard is tracked at the engagement level, not per intern — attributing scorecard metrics to an individual is a future enhancement. Upgrade path (per Grace/Ethan, 2026-07-14): a real login page, or fully separate per-person pages/routes, once this needs to stop being "whoever's avatar you click." Also not built yet: a profile photo/avatar upload, a combined activity timeline, and a single-person PDF export (today's export is engagement-wide only).
 
 ## Commands
 

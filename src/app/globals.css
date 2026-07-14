@@ -42,8 +42,10 @@ button {
 .ghi-nav-tab,
 .ghi-btn-primary,
 .ghi-btn-ghost,
+.ghi-avatar,
+.ghi-pill,
 .ghi-x {
-  transition: background-color 0.15s ease-out, color 0.15s ease-out, border-color 0.15s ease-out, opacity 0.15s ease-out;
+  transition: background-color 0.15s ease-out, color 0.15s ease-out, border-color 0.15s ease-out, opacity 0.15s ease-out, filter 0.15s ease-out;
 }
 
 .ghi-nav-tab:hover {
@@ -56,6 +58,14 @@ button {
 
 .ghi-btn-ghost:hover {
   background: oklch(0.95 0.025 55);
+}
+
+.ghi-avatar:hover {
+  filter: brightness(1.15);
+}
+
+.ghi-pill:hover {
+  border-color: oklch(0.6 0.1 20) !important;
 }
 
 .ghi-chevron {
@@ -71,6 +81,8 @@ button {
   .ghi-nav-tab,
   .ghi-btn-primary,
   .ghi-btn-ghost,
+  .ghi-avatar,
+  .ghi-pill,
   .ghi-chevron,
   .ghi-x {
     transition: none;

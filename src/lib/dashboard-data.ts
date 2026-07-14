@@ -154,10 +154,12 @@ export interface DraftJournalEntry {
   text: string;
 }
 
-export type TabId = "dashboard" | "scorecard" | "journal" | "okrs" | "priorities" | "reflections" | "feedback" | "reviews" | "reference" | "saved";
+export type TabId = "dashboard" | "profile" | "scorecard" | "journal" | "okrs" | "priorities" | "reflections" | "feedback" | "reviews" | "reference" | "saved";
 
 export interface AppState {
   activeTab: TabId;
+  activeProfileName: string;
+  internProfiles: Record<string, InternProfileInfo>;
   activePeriodId: string;
   periods: Period[];
   journal: JournalEntry[];
@@ -175,6 +177,16 @@ export interface AppState {
   reviews: Review[];
   reviewDraft: ReviewDraft;
   activeReviewId: string | null;
+}
+
+export interface InternProfileInfo {
+  name: string;
+  initials: string;
+  role: string;
+  manager: string;
+  department: string;
+  startDate: string;
+  bio: string;
 }
 
 export const MONTH_NAMES = [
@@ -221,7 +233,9 @@ export interface NavGroup {
   items: NavItem[];
 }
 
-export const NAV_STANDALONE: NavItem = { id: "dashboard", label: "Dashboard" };
+export const NAV_STANDALONE_ITEMS: NavItem[] = [
+  { id: "dashboard", label: "Dashboard" },
+];
 
 export const NAV_GROUPS: NavGroup[] = [
   {
@@ -250,19 +264,6 @@ export const NAV_GROUPS: NavGroup[] = [
   },
 ];
 
-export const TAB_LABELS: Record<TabId, string> = {
-  dashboard: "Dashboard",
-  scorecard: "Scorecard",
-  journal: "Journal",
-  okrs: "Goals",
-  priorities: "Weekly Priorities",
-  reflections: "Weekly Reflections",
-  feedback: "360 Feedback",
-  reviews: "Review Summaries",
-  reference: "Reference",
-  saved: "Saved",
-};
-
 export const TEAM_MEMBERS = ["Grace Soegiarto", "Ethan Maxey"];
 
 export const CORE_QUESTIONS: { text: string; type: QuestionType }[] = [
@@ -286,6 +287,21 @@ export function freshDraftQuestions(subjectName?: string): ReviewDraft {
 export function initialState(): AppState {
   return {
     activeTab: "dashboard",
+    activeProfileName: "Grace Soegiarto",
+    internProfiles: {
+      "Grace Soegiarto": {
+        name: "Grace Soegiarto", initials: "GS", role: "Analyst Intern",
+        manager: "Jordan Patel, Engagement Lead", department: "Griffin Global / Doeren Mayhew Engagement",
+        startDate: "2026-06-01",
+        bio: "Focused on ATS vendor landscape research and operational support for the Doeren Mayhew engagement.",
+      },
+      "Ethan Maxey": {
+        name: "Ethan Maxey", initials: "EM", role: "Analyst Intern",
+        manager: "Jordan Patel, Engagement Lead", department: "Griffin Global / Doeren Mayhew Engagement",
+        startDate: "2026-06-01",
+        bio: "Focused on ClearCompany performance-management evaluation and onboarding runbook development.",
+      },
+    },
     activePeriodId: "p1",
     periods: [
       {
@@ -435,5 +451,7 @@ export function normalizeState(raw: Partial<AppState>): AppState {
     activePriorityWeekId: raw.activePriorityWeekId ?? base.activePriorityWeekId,
     reflectionWeeks: raw.reflectionWeeks ?? base.reflectionWeeks,
     activeReflectionWeekId: raw.activeReflectionWeekId ?? base.activeReflectionWeekId,
+    activeProfileName: raw.activeProfileName ?? base.activeProfileName,
+    internProfiles: raw.internProfiles ?? base.internProfiles,
   };
 }

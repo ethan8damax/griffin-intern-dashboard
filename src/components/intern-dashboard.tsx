@@ -21,7 +21,7 @@ import {
   JOURNAL_TAG_META,
   JIRA_ISSUE_STATUS_META,
   REFLECTION_CATEGORY_META,
-  NAV_STANDALONE,
+  NAV_STANDALONE_ITEMS,
   NAV_GROUPS,
   TEAM_MEMBERS,
   freshDraftQuestions,
@@ -377,6 +377,7 @@ export default function InternDashboard() {
         {state.activeTab === "dashboard" && (
           <DashboardTab state={state} setState={setState} activePeriod={activePeriod} />
         )}
+        {state.activeTab === "profile" && <ProfileTab state={state} setState={setState} />}
         {state.activeTab === "scorecard" && (
           <ScorecardTab state={state} setState={setState} activePeriod={activePeriod} onExportPeriod={() => exportPeriodPdf(activePeriod.id)} />
         )}
@@ -436,7 +437,10 @@ function TopNav({ state, setState, saveStatus, onExportFull }: { state: AppState
     );
   }
 
-  const dashboardActive = state.activeTab === NAV_STANDALONE.id;
+  function openProfile(name: string) {
+    setState((s) => ({ ...s, activeTab: "profile", activeProfileName: name }));
+    setOpenGroup(null);
+  }
 
   return (
     <div style={{ background: "white", borderBottom: `1px solid ${BORDER}`, padding: "14px 28px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20, flexWrap: "wrap" }}>
@@ -457,13 +461,19 @@ function TopNav({ state, setState, saveStatus, onExportFull }: { state: AppState
 
       <div style={{ display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap" }}>
         <div ref={navRef} style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap" }}>
-          <div
-            onClick={() => selectTab(NAV_STANDALONE.id)}
-            className="ghi-nav-tab"
-            style={{ padding: "8px 12px", borderRadius: 8, fontSize: 13.5, fontWeight: dashboardActive ? 700 : 500, cursor: "pointer", color: dashboardActive ? MAROON : MUTED, background: dashboardActive ? MAROON_TINT : "transparent" }}
-          >
-            {NAV_STANDALONE.label}
-          </div>
+          {NAV_STANDALONE_ITEMS.map((navItem) => {
+            const active = state.activeTab === navItem.id;
+            return (
+              <div
+                key={navItem.id}
+                onClick={() => selectTab(navItem.id)}
+                className="ghi-nav-tab"
+                style={{ padding: "8px 12px", borderRadius: 8, fontSize: 13.5, fontWeight: active ? 700 : 500, cursor: "pointer", color: active ? MAROON : MUTED, background: active ? MAROON_TINT : "transparent" }}
+              >
+                {navItem.label}
+              </div>
+            );
+          })}
 
           {NAV_GROUPS.map((group) => {
             const groupActive = group.items.some((it) => it.id === state.activeTab);
@@ -493,9 +503,9 @@ function TopNav({ state, setState, saveStatus, onExportFull }: { state: AppState
           {saveStatus === "saved" && "Saved"}
           {saveStatus === "error" && "Save failed — check connection"}
         </div>
-        <div style={{ display: "flex", alignItems: "center", cursor: "default" }} title="Grace Soegiarto + Ethan Maxey">
-          <div style={{ width: 26, height: 26, borderRadius: "50%", background: MAROON, color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10.5, fontWeight: 700, border: "2px solid white" }}>GS</div>
-          <div style={{ width: 26, height: 26, borderRadius: "50%", background: MAROON_DEEP, color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10.5, fontWeight: 700, border: "2px solid white", marginLeft: -8 }}>EM</div>
+        <div style={{ display: "flex", alignItems: "center" }}>
+          <div onClick={() => openProfile("Grace Soegiarto")} className="ghi-avatar" title="View Grace Soegiarto's profile" style={{ width: 26, height: 26, borderRadius: "50%", background: MAROON, color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10.5, fontWeight: 700, border: "2px solid white", cursor: "pointer" }}>GS</div>
+          <div onClick={() => openProfile("Ethan Maxey")} className="ghi-avatar" title="View Ethan Maxey's profile" style={{ width: 26, height: 26, borderRadius: "50%", background: MAROON_DEEP, color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10.5, fontWeight: 700, border: "2px solid white", marginLeft: -8, cursor: "pointer" }}>EM</div>
         </div>
         <div onClick={onExportFull} className="ghi-btn-primary" style={{ padding: "9px 16px", borderRadius: 9, fontSize: 12.5, fontWeight: 600, color: "white", background: MAROON, cursor: "pointer", whiteSpace: "nowrap" }}>
           Export full internship PDF
@@ -605,6 +615,164 @@ function DashboardTab({ state, setState, activePeriod }: { state: AppState; setS
           })}
           {recentJournal.length === 0 && <div style={{ fontSize: 12.5, color: MUTED }}>No journal entries yet.</div>}
         </div>
+      </div>
+    </div>
+  );
+}
+
+function ProfileTab({ state, setState }: { state: AppState; setState: SetAppState }) {
+  const person = state.activeProfileName;
+  const profile = state.internProfiles[person] ?? state.internProfiles[TEAM_MEMBERS[0]];
+
+  function selectPerson(name: string) {
+    setState((s) => ({ ...s, activeProfileName: name }));
+  }
+  function updateProfileField(field: "role" | "manager" | "department" | "startDate" | "bio", value: string) {
+    setState((s) => ({ ...s, internProfiles: { ...s.internProfiles, [person]: { ...s.internProfiles[person], [field]: value } } }));
+  }
+
+  const order: Status[] = ["green", "yellow", "red", "gray"];
+
+  const individualGoals = state.okrs.filter((o) => o.owner === "individual" && o.assignee === person);
+  const goalCounts: Record<Status, number> = { green: 0, yellow: 0, red: 0, gray: 0 };
+  individualGoals.forEach((o) => { goalCounts[o.status] += 1; });
+
+  const activePriorityWeek = state.priorityWeeks.find((w) => w.id === state.activePriorityWeekId) ?? state.priorityWeeks[state.priorityWeeks.length - 1];
+  const myPriorities = activePriorityWeek ? activePriorityWeek.priorities.filter((p) => p.owner === person) : [];
+
+  const activeReflectionWeek = state.reflectionWeeks.find((w) => w.id === state.activeReflectionWeekId) ?? state.reflectionWeeks[state.reflectionWeeks.length - 1];
+  const mySelfReflections = activeReflectionWeek ? activeReflectionWeek.entries.filter((e) => e.category === "self" && e.author === person) : [];
+  const peerNotesAboutMe = activeReflectionWeek ? activeReflectionWeek.entries.filter((e) => e.category === "peer" && e.subject === person) : [];
+
+  const myReviews = state.reviews.filter((r) => r.subjectName === person);
+  const submittedReviews = myReviews.filter((r) => r.status === "submitted");
+  const scores: number[] = [];
+  submittedReviews.forEach((r) => r.questions.forEach((q) => { if (q.type === "score" && typeof q.response === "number") scores.push(q.response); }));
+  const kpiScore = scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : null;
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+      <div style={{ display: "flex", gap: 8 }}>
+        {TEAM_MEMBERS.map((name) => {
+          const active = name === person;
+          return (
+            <div
+              key={name}
+              onClick={() => selectPerson(name)}
+              className="ghi-pill"
+              style={{ padding: "7px 14px", borderRadius: 999, fontSize: 13, fontWeight: active ? 700 : 500, cursor: "pointer", color: active ? "white" : "oklch(0.35 0.015 50)", background: active ? MAROON : "white", border: `1px solid ${active ? MAROON : BORDER}` }}
+            >
+              {name}
+            </div>
+          );
+        })}
+      </div>
+
+      <div style={{ ...CARD, display: "flex", alignItems: "flex-start", gap: 20, flexWrap: "wrap" }}>
+        <div style={{ width: 64, height: 64, borderRadius: "50%", background: MAROON, color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, fontWeight: 700, flex: "none" }}>{profile.initials}</div>
+        <div style={{ flex: 1, minWidth: 260 }}>
+          <div style={{ fontSize: 20, fontWeight: 600, fontFamily: SERIF }}>{profile.name}</div>
+          <div style={{ fontSize: 13, color: MUTED, marginTop: 2 }} {...editable(profile.role, (v) => updateProfileField("role", v))} />
+          <div style={{ fontSize: 12.5, color: "oklch(0.35 0.015 50)", marginTop: 8, lineHeight: 1.5 }} {...editable(profile.bio, (v) => updateProfileField("bio", v))} />
+          <div style={{ display: "flex", gap: 22, flexWrap: "wrap", marginTop: 12 }}>
+            <div>
+              <div style={LABEL}>Manager</div>
+              <div style={{ fontSize: 12.5, marginTop: 2 }} {...editable(profile.manager, (v) => updateProfileField("manager", v))} />
+            </div>
+            <div>
+              <div style={LABEL}>Department</div>
+              <div style={{ fontSize: 12.5, marginTop: 2 }} {...editable(profile.department, (v) => updateProfileField("department", v))} />
+            </div>
+            <div>
+              <div style={LABEL}>Started</div>
+              <input type="date" value={profile.startDate} onChange={(e) => updateProfileField("startDate", e.target.value)} style={{ fontSize: 12.5, marginTop: 2, border: "1px solid oklch(0.88 0.012 55)", borderRadius: 6, padding: "3px 6px" }} />
+            </div>
+          </div>
+        </div>
+        <div style={{ textAlign: "center", flex: "none" }}>
+          <div style={LABEL}>KPI Score</div>
+          <div style={{ fontSize: 30, fontWeight: 800, color: MAROON, lineHeight: 1.2 }}>{kpiScore !== null ? kpiScore.toFixed(1) + " / 10" : "—"}</div>
+          <div style={{ fontSize: 10.5, color: MUTED }}>from submitted reviews</div>
+        </div>
+      </div>
+
+      <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
+        <div style={{ ...CARD, flex: 1, minWidth: 220 }}>
+          <div style={SECTION_TITLE}>Goals</div>
+          <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+            {order.map((k) => (
+              <div key={k} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, flex: 1 }}>
+                <div style={{ fontSize: 18, fontWeight: 800, color: STATUS_META[k].color }}>{goalCounts[k]}</div>
+                <div style={{ fontSize: 9.5, color: MUTED, textAlign: "center" }}>{STATUS_META[k].label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div style={{ ...CARD, flex: 1, minWidth: 220 }}>
+          <div style={SECTION_TITLE}>Reviews</div>
+          <div style={{ fontSize: 13, marginTop: 10, color: "oklch(0.3 0.015 50)" }}>{submittedReviews.length} submitted · {myReviews.length - submittedReviews.length} pending</div>
+        </div>
+        <div style={{ ...CARD, flex: 1, minWidth: 220 }}>
+          <div style={SECTION_TITLE}>Reflection activity</div>
+          <div style={{ fontSize: 13, marginTop: 10, color: "oklch(0.3 0.015 50)" }}>{mySelfReflections.length} self-reflection{mySelfReflections.length === 1 ? "" : "s"} · {peerNotesAboutMe.length} peer note{peerNotesAboutMe.length === 1 ? "" : "s"} this week</div>
+        </div>
+      </div>
+
+      <div style={CARD}>
+        <div style={SECTION_TITLE}>Individual goals</div>
+        <div style={SECTION_SUB}>Read-only — edit under Planning → Goals</div>
+        {individualGoals.length === 0 && <div style={{ fontSize: 12.5, color: MUTED }}>No individual goals set yet.</div>}
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {individualGoals.map((o) => (
+            <div key={o.id} style={{ borderTop: "1px solid oklch(0.94 0.008 55)", paddingTop: 10 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <span>{STATUS_META[o.status].emoji}</span>
+                <span style={{ fontWeight: 700, fontSize: 13.5 }}>{o.objective}</span>
+                {o.targetDate && <span style={{ fontSize: 11, color: MUTED, marginLeft: "auto" }}>target {o.targetDate}</span>}
+              </div>
+              {o.krs.length > 0 && (
+                <ul style={{ margin: "6px 0 0 22px", padding: 0, fontSize: 12.5, color: "oklch(0.35 0.015 50)" }}>
+                  {o.krs.map((k) => <li key={k.id}>{k.text}</li>)}
+                </ul>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div style={CARD}>
+        <div style={SECTION_TITLE}>This week&apos;s priorities</div>
+        <div style={SECTION_SUB}>{activePriorityWeek ? formatWeekLabel(activePriorityWeek.weekOf) : "No week set"} — Read-only — edit under Planning → Weekly Priorities</div>
+        {myPriorities.length === 0 && <div style={{ fontSize: 12.5, color: MUTED }}>No priorities assigned this week.</div>}
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {myPriorities.map((p) => (
+            <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13 }}>
+              <span style={{ flex: 1, color: "oklch(0.3 0.015 50)" }}>{p.text}</span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: MAROON }}>{p.status}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div style={CARD}>
+        <div style={SECTION_TITLE}>Review status</div>
+        <div style={SECTION_SUB}>Read-only — manage under Performance → 360 Feedback</div>
+        {myReviews.length === 0 && <div style={{ fontSize: 12.5, color: MUTED }}>No reviews requested yet.</div>}
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {myReviews.map((r) => (
+            <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+              <span style={{ flex: 1, fontSize: 13, color: "oklch(0.3 0.015 50)" }}>Reviewed by {r.reviewerName}{r.reviewerRole ? ` (${r.reviewerRole})` : ""}</span>
+              <span style={{ fontSize: 11.5, color: MUTED }}>{r.requestedDate}</span>
+              <span style={{ ...PILL, fontSize: 11, fontWeight: 700, padding: "3px 10px", background: r.status === "submitted" ? "oklch(0.94 0.06 150)" : "oklch(0.95 0.06 85)", color: r.status === "submitted" ? "oklch(0.4 0.1 150)" : "oklch(0.5 0.12 85)" }}>
+                {r.status === "submitted" ? "Submitted" : "Pending"}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ fontSize: 12, color: "oklch(0.45 0.015 50)", background: "oklch(0.96 0.015 85)", border: "1px solid oklch(0.85 0.05 85)", borderRadius: 10, padding: "12px 16px", lineHeight: 1.6 }}>
+        <strong>Assumptions &amp; limitations:</strong> role, bio, manager, department, and start date are editable here (click text to edit, like the rest of the dashboard) and save to the shared Firestore document — there&apos;s no per-user login, so anyone with the link can edit anyone&apos;s profile. The goals/priorities/reflections/reviews sections below stay read-only rollups of data owned by their own tabs; edit those under Planning/Performance instead. The name itself isn&apos;t editable here since it&apos;s used as the lookup key across goals, priorities, and reviews — renaming a person would need a real person-ID system as a future enhancement. &quot;KPI Score&quot; is currently the average of this person&apos;s submitted review scores only, since the Scorecard is tracked at the engagement level rather than per intern; attributing individual scorecard metrics to a person is a future enhancement. &quot;Department&quot; shows the client engagement rather than a corporate department, since this is a consulting internship, not a multi-department org. Other future enhancements: a profile photo/avatar upload, an activity timeline combining journal + reflections + goal updates in one feed, and exporting a single-person PDF summary (today&apos;s PDF export is engagement-wide only).
       </div>
     </div>
   );
