@@ -4,7 +4,7 @@ html,
 body {
   margin: 0;
   padding: 0;
-  background: oklch(0.97 0.004 258);
+  background: oklch(0.97 0.014 75);
 }
 
 body,
@@ -16,17 +16,17 @@ button {
 }
 
 ::selection {
-  background: oklch(0.8 0.05 258 / 0.4);
+  background: oklch(0.75 0.1 20 / 0.3);
 }
 
 [contenteditable]:focus {
-  outline: 2px solid oklch(0.55 0.12 258);
+  outline: 2px solid oklch(0.45 0.13 20);
   outline-offset: 1px;
-  background: oklch(0.96 0.02 258);
+  background: oklch(0.96 0.025 40);
 }
 
 [contenteditable]:hover {
-  background: oklch(0.965 0.008 258);
+  background: oklch(0.965 0.012 60);
 }
 
 ::-webkit-scrollbar {
@@ -35,6 +35,39 @@ button {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: oklch(0.82 0.01 258);
-  border-radius: 4px;
+  background: oklch(0.82 0.015 50);
+  border-radius: 8px;
+}
+
+.ghi-nav-tab,
+.ghi-btn-primary,
+.ghi-btn-ghost,
+.ghi-x {
+  transition: background-color 0.15s ease-out, color 0.15s ease-out, border-color 0.15s ease-out, opacity 0.15s ease-out;
+}
+
+.ghi-nav-tab:hover {
+  color: oklch(0.32 0.13 20) !important;
+}
+
+.ghi-btn-primary:hover {
+  background: oklch(0.4 0.15 20) !important;
+}
+
+.ghi-btn-ghost:hover {
+  background: oklch(0.95 0.025 55);
+}
+
+.ghi-x:hover {
+  color: oklch(0.5 0.16 25);
+  background: oklch(0.95 0.03 25);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ghi-nav-tab,
+  .ghi-btn-primary,
+  .ghi-btn-ghost,
+  .ghi-x {
+    transition: none;
+  }
 }

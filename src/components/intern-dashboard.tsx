@@ -25,21 +25,26 @@ import { db } from "@/lib/firebase";
 
 type SetAppState = Dispatch<SetStateAction<AppState>>;
 
-const INK = "oklch(0.24 0.045 258)";
-const BORDER = "oklch(0.9 0.006 258)";
-const MUTED = "oklch(0.55 0.01 258)";
+const MAROON = "oklch(0.32 0.13 20)";
+const MAROON_DEEP = "oklch(0.22 0.11 20)";
+const MAROON_TINT = "oklch(0.93 0.045 20)";
+const BORDER = "oklch(0.9 0.012 60)";
+const MUTED = "oklch(0.55 0.015 50)";
+const INK_TEXT = "oklch(0.22 0.02 40)";
+const SERIF = "var(--font-serif), Georgia, serif";
 
 const CARD: CSSProperties = { background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "20px 22px" };
-const LABEL: CSSProperties = { fontSize: 11, fontWeight: 600, color: "oklch(0.5 0.01 258)", textTransform: "uppercase", letterSpacing: "0.04em" };
-const FIELD: CSSProperties = { padding: "8px 10px", border: "1px solid oklch(0.88 0.006 258)", borderRadius: 7, fontSize: 13 };
-const TH: CSSProperties = { textAlign: "left", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.04em", color: "oklch(0.5 0.01 258)", padding: "8px 10px", borderBottom: `2px solid ${BORDER}` };
+const LABEL: CSSProperties = { fontSize: 11, fontWeight: 600, color: "oklch(0.5 0.015 50)", textTransform: "uppercase", letterSpacing: "0.04em" };
+const FIELD: CSSProperties = { padding: "8px 10px", border: "1px solid oklch(0.88 0.012 55)", borderRadius: 7, fontSize: 13 };
+const TH: CSSProperties = { textAlign: "left", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.04em", color: "oklch(0.5 0.015 50)", padding: "8px 10px", borderBottom: `2px solid ${BORDER}` };
 const TD: CSSProperties = { padding: "9px 10px", fontSize: 13 };
-const SECTION_TITLE: CSSProperties = { fontSize: 15, fontWeight: 700, marginBottom: 2 };
+const SECTION_TITLE: CSSProperties = { fontSize: 15, fontWeight: 700, marginBottom: 2, color: INK_TEXT };
 const SECTION_SUB: CSSProperties = { fontSize: 12, color: MUTED, marginBottom: 14 };
-const LINK_BTN: CSSProperties = { fontSize: 12.5, fontWeight: 600, color: "oklch(0.4 0.1 258)", cursor: "pointer" };
-const PRIMARY_BTN: CSSProperties = { padding: "10px 18px", background: INK, color: "white", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", alignSelf: "flex-start" };
-const REMOVE_X: CSSProperties = { cursor: "pointer", color: "oklch(0.7 0.01 258)", fontSize: 15 };
-const DASHED_ADD: CSSProperties = { fontSize: 13, fontWeight: 600, color: "oklch(0.4 0.1 258)", cursor: "pointer", padding: 10, border: "1px dashed oklch(0.75 0.03 258)", borderRadius: 10, textAlign: "center", background: "white" };
+const LINK_BTN: CSSProperties = { fontSize: 12.5, fontWeight: 600, color: MAROON, cursor: "pointer", borderRadius: 6, padding: "2px 4px", marginLeft: -4 };
+const PRIMARY_BTN: CSSProperties = { padding: "10px 18px", background: MAROON, color: "white", borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: "pointer", alignSelf: "flex-start" };
+const REMOVE_X: CSSProperties = { cursor: "pointer", color: "oklch(0.65 0.015 50)", fontSize: 15, borderRadius: 5, padding: "0 3px" };
+const DASHED_ADD: CSSProperties = { fontSize: 13, fontWeight: 600, color: MAROON, cursor: "pointer", padding: 10, border: "1px dashed oklch(0.72 0.04 20)", borderRadius: 10, textAlign: "center", background: "white" };
+const PILL: CSSProperties = { borderRadius: 999 };
 
 function editable(value: string, onCommit: (v: string) => void) {
   return {
@@ -48,6 +53,40 @@ function editable(value: string, onCommit: (v: string) => void) {
     onBlur: (e: React.FocusEvent<HTMLElement>) => onCommit(e.currentTarget.textContent ?? ""),
     children: value,
   } as const;
+}
+
+function parseMetricNumber(value: string): number | null {
+  if (!value) return null;
+  const match = value.match(/-?\d+(\.\d+)?/);
+  return match ? parseFloat(match[0]) : null;
+}
+
+function mutedTint(oklchStr: string): string {
+  const m = oklchStr.match(/oklch\(([\d.]+)\s+([\d.]+)\s+([\d.]+)\)/);
+  if (!m) return oklchStr;
+  const l = Math.min(0.85, parseFloat(m[1]) + 0.22);
+  const c = parseFloat(m[2]) * 0.45;
+  return `oklch(${l.toFixed(2)} ${c.toFixed(3)} ${m[3]})`;
+}
+
+function Sparkline({ points, color }: { points: number[]; color: string }) {
+  if (points.length < 2) return null;
+  const w = 64;
+  const h = 24;
+  const pad = 3;
+  const min = Math.min(...points);
+  const max = Math.max(...points);
+  const range = max - min || 1;
+  const stepX = (w - pad * 2) / (points.length - 1);
+  const coords = points.map((p, i) => [pad + i * stepX, h - pad - ((p - min) / range) * (h - pad * 2)] as const);
+  const path = coords.map((c, i) => (i === 0 ? "M" : "L") + c[0].toFixed(1) + "," + c[1].toFixed(1)).join(" ");
+  const [lastX, lastY] = coords[coords.length - 1];
+  return (
+    <svg width={w} height={h} style={{ display: "block", flex: "none" }}>
+      <path d={path} fill="none" stroke={mutedTint(color)} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx={lastX} cy={lastY} r={3} fill={color} stroke="white" strokeWidth={1.5} />
+    </svg>
+  );
 }
 
 function escapeHtml(str: string | null | undefined): string {
@@ -70,8 +109,8 @@ function openPrintWindow(bodyHtml: string, title: string) {
 }
 
 function buildHeaderHtml(subtitle: string): string {
-  return `<div style="margin-bottom:22px;border-bottom:2px solid #1c2b47;padding-bottom:14px;">
-    <div style="font-size:21px;font-weight:800;color:#1c2b47;">Intern Analyst — KPI &amp; Metrics Dashboard</div>
+  return `<div style="margin-bottom:22px;border-bottom:2px solid #4a1220;padding-bottom:14px;">
+    <div style="font-size:21px;font-weight:800;color:#4a1220;">Intern Analyst — KPI &amp; Metrics Dashboard</div>
     <div style="font-size:12.5px;color:#555;margin-top:4px;">Grace Soegiarto + Ethan Maxey · Griffin Global / Doeren Mayhew</div>
     <div style="font-size:11.5px;color:#888;margin-top:2px;">${escapeHtml(subtitle)} · Generated ${new Date().toLocaleDateString()}</div>
   </div>`;
@@ -79,7 +118,7 @@ function buildHeaderHtml(subtitle: string): string {
 
 function renderPeriodSectionHtml(period: Period): string {
   const label = MONTH_NAMES[period.month] + " " + period.year;
-  const th = "text-align:left;padding:8px 10px;border-bottom:2px solid #1c2b47;font-size:10.5px;text-transform:uppercase;letter-spacing:0.03em;color:#666;";
+  const th = "text-align:left;padding:8px 10px;border-bottom:2px solid #4a1220;font-size:10.5px;text-transform:uppercase;letter-spacing:0.03em;color:#666;";
   const td = "padding:8px 10px;border-bottom:1px solid #e5e5e5;font-size:12.5px;";
   const rows = period.scorecard.map((r) => {
     const meta = STATUS_META[r.status] ?? STATUS_META.gray;
@@ -100,7 +139,7 @@ function renderPeriodSectionHtml(period: Period): string {
     <td style="${td}color:#2a5fa8;">${escapeHtml(w.evidence)}</td>
   </tr>`).join("");
   return `<div style="margin-bottom:32px;">
-    <h2 style="font-size:19px;margin:0 0 4px;color:#1c2b47;">Period: ${label}</h2>
+    <h2 style="font-size:19px;margin:0 0 4px;color:#4a1220;">Period: ${label}</h2>
     <div style="font-size:11.5px;color:#666;margin-bottom:10px;text-transform:uppercase;letter-spacing:0.03em;">Current Period Scorecard</div>
     <table style="width:100%;border-collapse:collapse;margin-bottom:22px;">
       <thead><tr><th style="${th}">Category</th><th style="${th}">Metric</th><th style="${th}">Target</th><th style="${th}">Actual</th><th style="${th}">Status</th><th style="${th}">Notes</th></tr></thead>
@@ -193,7 +232,7 @@ export default function InternDashboard() {
     // user's edit land, then get silently overwritten the moment the fetch
     // finally completes and calls setState with server data.
     return (
-      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "oklch(0.97 0.004 258)", color: MUTED, fontSize: 13 }}>
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "oklch(0.97 0.014 75)", color: MUTED, fontSize: 13 }}>
         Loading…
       </div>
     );
@@ -201,11 +240,11 @@ export default function InternDashboard() {
 
   if (standaloneReview) {
     return (
-      <div style={{ minHeight: "100vh", background: "oklch(0.97 0.004 258)", color: "oklch(0.2 0.01 258)" }}>
+      <div style={{ minHeight: "100vh", background: "oklch(0.97 0.014 75)", color: INK_TEXT }}>
         <div style={{ maxWidth: 620, margin: "0 auto", padding: "56px 24px", display: "flex", flexDirection: "column", gap: 20 }}>
           <div>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "oklch(0.4 0.1 258)", textTransform: "uppercase", letterSpacing: "0.04em" }}>Intern Analyst Review Request</div>
-            <div style={{ fontSize: 20, fontWeight: 800, marginTop: 4 }}>You&apos;re reviewing {standaloneReview.subjectName}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: MAROON, textTransform: "uppercase", letterSpacing: "0.04em" }}>Intern Analyst Review Request</div>
+            <div style={{ fontSize: 21, fontWeight: 600, marginTop: 4, fontFamily: SERIF }}>You&apos;re reviewing {standaloneReview.subjectName}</div>
             <div style={{ fontSize: 13, color: MUTED, marginTop: 2 }}>
               Requested of {standaloneReview.reviewerName}{standaloneReview.reviewerRole ? ` (${standaloneReview.reviewerRole})` : ""} · Griffin Global / Doeren Mayhew engagement
             </div>
@@ -226,7 +265,7 @@ export default function InternDashboard() {
                         <div
                           key={n}
                           onClick={() => updateReviewResponse(standaloneReview.id, q.id, n)}
-                          style={{ width: 30, height: 30, borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12.5, fontWeight: 700, cursor: "pointer", border: `1px solid ${q.response === n ? INK : "oklch(0.88 0.006 258)"}`, background: q.response === n ? INK : "white", color: q.response === n ? "white" : "oklch(0.4 0.01 258)" }}
+                          style={{ width: 30, height: 30, borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12.5, fontWeight: 700, cursor: "pointer", border: `1px solid ${q.response === n ? MAROON : "oklch(0.88 0.012 55)"}`, background: q.response === n ? MAROON : "white", color: q.response === n ? "white" : "oklch(0.4 0.015 50)" }}
                         >
                           {n}
                         </div>
@@ -237,12 +276,12 @@ export default function InternDashboard() {
                       value={(q.response as string) ?? ""}
                       onChange={(e) => updateReviewResponse(standaloneReview.id, q.id, e.target.value)}
                       placeholder="Write your answer…"
-                      style={{ width: "100%", minHeight: 70, padding: "10px 12px", border: "1px solid oklch(0.88 0.006 258)", borderRadius: 8, fontSize: 13, fontFamily: "inherit", resize: "vertical" }}
+                      style={{ width: "100%", minHeight: 70, padding: "10px 12px", border: "1px solid oklch(0.88 0.012 55)", borderRadius: 8, fontSize: 13, fontFamily: "inherit", resize: "vertical" }}
                     />
                   )}
                 </div>
               ))}
-              <div onClick={() => submitReview(standaloneReview.id)} style={{ padding: 12, background: INK, color: "white", borderRadius: 9, fontSize: 14, fontWeight: 700, cursor: "pointer", textAlign: "center" }}>
+              <div onClick={() => submitReview(standaloneReview.id)} className="ghi-btn-primary" style={{ padding: 12, background: MAROON, color: "white", borderRadius: 9, fontSize: 14, fontWeight: 700, cursor: "pointer", textAlign: "center" }}>
                 Submit review
               </div>
             </>
@@ -264,7 +303,7 @@ export default function InternDashboard() {
   function exportFullPdf() {
     const periodsHtml = state.periods.map((p, i) => renderPeriodSectionHtml(p) + (i < state.periods.length - 1 ? '<div style="page-break-after:always;"></div>' : "")).join("");
     const journalHtml = `<div style="margin-top:8px;page-break-before:always;">
-      <h2 style="font-size:18px;color:#1c2b47;margin-bottom:12px;">Intern Journal</h2>
+      <h2 style="font-size:18px;color:#4a1220;margin-bottom:12px;">Intern Journal</h2>
       ${state.journal.map((j) => {
         const tag = JOURNAL_TAG_META[j.type] ?? JOURNAL_TAG_META.note;
         return `<div style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid #eee;">
@@ -274,7 +313,7 @@ export default function InternDashboard() {
       }).join("")}
     </div>`;
     const okrHtml = `<div style="margin-top:24px;">
-      <h2 style="font-size:18px;color:#1c2b47;margin-bottom:12px;">Goals &amp; OKRs</h2>
+      <h2 style="font-size:18px;color:#4a1220;margin-bottom:12px;">Goals &amp; OKRs</h2>
       ${state.okrs.map((o, i) => `<div style="margin-bottom:14px;">
         <div style="font-weight:700;font-size:14px;">Objective ${i + 1}: ${escapeHtml(o.objective)}</div>
         <ul style="margin:6px 0 0 18px;padding:0;font-size:12.5px;color:#444;">${o.krs.map((k) => `<li>${escapeHtml(k.text)}</li>`).join("")}</ul>
@@ -284,30 +323,41 @@ export default function InternDashboard() {
   }
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "oklch(0.97 0.004 258)", color: "oklch(0.2 0.01 258)" }}>
-      <div style={{ background: INK, color: "white", padding: "18px 28px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20, flexWrap: "wrap" }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 220 }}>
-          <div style={{ fontSize: 17, fontWeight: 700, letterSpacing: "-0.01em" }}>Intern Analyst Dashboard</div>
-          <div style={{ fontSize: 12.5, color: "oklch(0.78 0.02 258)", fontWeight: 500 }}>Grace Soegiarto + Ethan Maxey · Griffin Global / Doeren Mayhew</div>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
-          <div style={{ display: "flex", gap: 4, flexWrap: "wrap", background: "oklch(0.21 0.04 258)", padding: 4, borderRadius: 10 }}>
-            {NAV_TABS.map((tab) => (
-              <div
-                key={tab.id}
-                onClick={() => setState((s) => ({ ...s, activeTab: tab.id }))}
-                style={{ padding: "8px 14px", borderRadius: 7, fontSize: 13, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", background: state.activeTab === tab.id ? "white" : "transparent", color: state.activeTab === tab.id ? INK : "oklch(0.85 0.02 258)" }}
-              >
-                {tab.label}
-              </div>
-            ))}
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "oklch(0.97 0.014 75)", color: INK_TEXT }}>
+      <div style={{ background: "white", borderBottom: `1px solid ${BORDER}`, padding: "14px 28px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 220 }}>
+          <div style={{ width: 32, height: 32, borderRadius: 8, background: MAROON, color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 600, fontFamily: SERIF, flex: "none" }}>G</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+            <div style={{ fontSize: 18, fontWeight: 600, fontFamily: SERIF, letterSpacing: "-0.01em" }}>Intern Analyst Dashboard</div>
+            <div style={{ fontSize: 11.5, color: MUTED }}>Griffin Global · Doeren Mayhew engagement</div>
           </div>
-          <div style={{ fontSize: 11.5, color: saveStatus === "error" ? "oklch(0.75 0.16 25)" : "oklch(0.78 0.02 258)", whiteSpace: "nowrap" }}>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 22, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
+            {NAV_TABS.map((tab) => {
+              const active = state.activeTab === tab.id;
+              return (
+                <div
+                  key={tab.id}
+                  className="ghi-nav-tab"
+                  onClick={() => setState((s) => ({ ...s, activeTab: tab.id }))}
+                  style={{ fontSize: 13.5, fontWeight: active ? 700 : 500, cursor: "pointer", whiteSpace: "nowrap", color: active ? MAROON : MUTED, paddingBottom: 4, borderBottom: active ? `2px solid ${MAROON}` : "2px solid transparent" }}
+                >
+                  {tab.label}
+                </div>
+              );
+            })}
+          </div>
+          <div style={{ fontSize: 11.5, color: saveStatus === "error" ? "oklch(0.5 0.16 25)" : MUTED, whiteSpace: "nowrap" }}>
             {saveStatus === "saving" && "Saving…"}
             {saveStatus === "saved" && "Saved"}
             {saveStatus === "error" && "Save failed — check connection"}
           </div>
-          <div onClick={exportFullPdf} style={{ padding: "8px 14px", border: "1px solid oklch(0.4 0.03 258)", borderRadius: 8, fontSize: 12.5, fontWeight: 600, color: "white", cursor: "pointer", whiteSpace: "nowrap" }}>
+          <div style={{ display: "flex", alignItems: "center" }} title="Grace Soegiarto + Ethan Maxey">
+            <div style={{ width: 26, height: 26, borderRadius: "50%", background: MAROON, color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10.5, fontWeight: 700, border: "2px solid white" }}>GS</div>
+            <div style={{ width: 26, height: 26, borderRadius: "50%", background: MAROON_DEEP, color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10.5, fontWeight: 700, border: "2px solid white", marginLeft: -8 }}>EM</div>
+          </div>
+          <div onClick={exportFullPdf} className="ghi-btn-primary" style={{ padding: "9px 16px", borderRadius: 9, fontSize: 12.5, fontWeight: 600, color: "white", background: MAROON, cursor: "pointer", whiteSpace: "nowrap" }}>
             Export full internship PDF
           </div>
         </div>
@@ -375,16 +425,24 @@ function ScorecardTab({ state, setState, activePeriod, onExportPeriod }: { state
   const statusOptions = (Object.keys(STATUS_META) as Status[]).map((k) => ({ value: k, label: `${STATUS_META[k].emoji} ${STATUS_META[k].label}` }));
   const workStatusOptions: WorkStatus[] = ["Done", "In Progress", "Not Started", "Blocked"];
 
+  const periodsSorted = [...state.periods].sort((a, b) => (a.year - b.year) || (a.month - b.month));
+  function metricSeries(name: string): number[] {
+    return periodsSorted
+      .map((p) => p.scorecard.find((r) => r.metric === name))
+      .map((r) => (r ? parseMetricNumber(r.actual) : null))
+      .filter((n): n is number => n !== null);
+  }
+
   const findRow = (name: string) => activePeriod.scorecard.find((r) => r.metric === name);
   const onTime = findRow("On-time delivery rate");
   const shipped = findRow("Deliverables shipped");
   const accuracy = findRow("Data accuracy");
   const feedback = findRow("Lead / client feedback");
   const statCards = [
-    { label: "On-time delivery", value: onTime?.actual || "—", target: onTime?.target || "—", color: STATUS_META[onTime?.status ?? "gray"].color },
-    { label: "Deliverables shipped", value: shipped?.actual || "—", target: shipped?.target || "—", color: STATUS_META[shipped?.status ?? "gray"].color },
-    { label: "Data accuracy", value: accuracy?.actual || "Pending", target: accuracy?.target || "—", color: STATUS_META[accuracy?.status ?? "gray"].color },
-    { label: "Client feedback", value: feedback?.actual || "Pending", target: feedback?.target || "—", color: STATUS_META[feedback?.status ?? "gray"].color },
+    { label: "On-time delivery", value: onTime?.actual || "—", target: onTime?.target || "—", color: STATUS_META[onTime?.status ?? "gray"].color, series: metricSeries("On-time delivery rate") },
+    { label: "Deliverables shipped", value: shipped?.actual || "—", target: shipped?.target || "—", color: STATUS_META[shipped?.status ?? "gray"].color, series: metricSeries("Deliverables shipped") },
+    { label: "Data accuracy", value: accuracy?.actual || "Pending", target: accuracy?.target || "—", color: STATUS_META[accuracy?.status ?? "gray"].color, series: metricSeries("Data accuracy") },
+    { label: "Client feedback", value: feedback?.actual || "Pending", target: feedback?.target || "—", color: STATUS_META[feedback?.status ?? "gray"].color, series: metricSeries("Lead / client feedback") },
   ];
 
   const counts: Record<Status, number> = { green: 0, yellow: 0, red: 0, gray: 0 };
@@ -398,7 +456,7 @@ function ScorecardTab({ state, setState, activePeriod, onExportPeriod }: { state
     if (pct > 0) segments.push(`${STATUS_META[k].color} ${acc}% ${acc + pct}%`);
     acc += pct;
   });
-  const donutGradient = segments.length ? `conic-gradient(${segments.join(", ")})` : "oklch(0.9 0.006 258)";
+  const donutGradient = segments.length ? `conic-gradient(${segments.join(", ")})` : "oklch(0.9 0.012 55)";
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
@@ -408,7 +466,7 @@ function ScorecardTab({ state, setState, activePeriod, onExportPeriod }: { state
           {riskRows.map((r) => (
             <div key={r.id} style={{ display: "flex", gap: 8, alignItems: "baseline", fontSize: 13 }}>
               <span>{STATUS_META[r.status].emoji}</span>
-              <span style={{ fontWeight: 700, color: "oklch(0.3 0.02 258)" }}>{r.metric}</span>
+              <span style={{ fontWeight: 700, color: "oklch(0.3 0.02 40)" }}>{r.metric}</span>
               <span style={{ color: "oklch(0.45 0.02 40)" }}>{r.notes ? `— ${r.notes}` : "(no note added yet)"}</span>
             </div>
           ))}
@@ -417,13 +475,18 @@ function ScorecardTab({ state, setState, activePeriod, onExportPeriod }: { state
 
       <div style={{ display: "flex", gap: 14, flexWrap: "wrap", alignItems: "stretch" }}>
         {statCards.map((card) => (
-          <div key={card.label} style={{ flex: 1, minWidth: 170, background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "14px 16px", display: "flex", flexDirection: "column", gap: 4, boxShadow: "0 1px 2px oklch(0.2 0 0 / 0.04)" }}>
+          <div key={card.label} style={{ flex: 1, minWidth: 190, background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "14px 16px", display: "flex", flexDirection: "column", gap: 4, boxShadow: "0 1px 2px oklch(0.2 0.02 40 / 0.05)" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <div style={LABEL}>{card.label}</div>
               <div style={{ width: 8, height: 8, borderRadius: "50%", background: card.color }} />
             </div>
-            <div style={{ fontSize: 22, fontWeight: 800, color: "oklch(0.22 0.02 258)", letterSpacing: "-0.01em" }}>{card.value}</div>
-            <div style={{ fontSize: 11, color: MUTED }}>Target {card.target}</div>
+            <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 8 }}>
+              <div>
+                <div style={{ fontSize: 22, fontWeight: 800, color: INK_TEXT, letterSpacing: "-0.01em" }}>{card.value}</div>
+                <div style={{ fontSize: 11, color: MUTED }}>Target {card.target}</div>
+              </div>
+              <Sparkline points={card.series} color={card.color} />
+            </div>
           </div>
         ))}
         <div style={{ minWidth: 180, background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "14px 16px", display: "flex", alignItems: "center", gap: 12 }}>
@@ -435,7 +498,7 @@ function ScorecardTab({ state, setState, activePeriod, onExportPeriod }: { state
               <div key={k} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11 }}>
                 <div style={{ width: 7, height: 7, borderRadius: "50%", background: STATUS_META[k].color }} />
                 <span style={{ color: MUTED }}>{STATUS_META[k].label}</span>
-                <span style={{ fontWeight: 700, color: "oklch(0.22 0.02 258)" }}>{counts[k]}</span>
+                <span style={{ fontWeight: 700, color: INK_TEXT }}>{counts[k]}</span>
               </div>
             ))}
           </div>
@@ -449,21 +512,21 @@ function ScorecardTab({ state, setState, activePeriod, onExportPeriod }: { state
             <div
               key={p.id}
               onClick={() => setState((s) => ({ ...s, activePeriodId: p.id }))}
-              style={{ padding: "7px 8px 7px 14px", borderRadius: 8, fontSize: 12.5, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 8, border: `1px solid ${active ? INK : "oklch(0.88 0.006 258)"}`, background: active ? INK : "white", color: active ? "white" : "oklch(0.35 0.01 258)" }}
+              style={{ padding: "7px 8px 7px 14px", borderRadius: 999, fontSize: 12.5, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 8, border: `1px solid ${active ? MAROON : "oklch(0.88 0.012 55)"}`, background: active ? MAROON : "white", color: active ? "white" : "oklch(0.35 0.015 50)" }}
             >
               <span>{MONTH_NAMES[p.month]} {p.year}</span>
               <span
                 title="Delete this period"
                 onClick={(e) => { e.stopPropagation(); removePeriod(p.id); }}
-                style={{ cursor: "pointer", fontSize: 14, lineHeight: 1, padding: "2px 5px", borderRadius: 5, color: active ? "oklch(0.85 0.02 258)" : "oklch(0.6 0.01 258)" }}
+                style={{ cursor: "pointer", fontSize: 14, lineHeight: 1, padding: "2px 5px", borderRadius: 999, color: active ? "oklch(0.85 0.03 20)" : "oklch(0.6 0.015 50)" }}
               >
                 ×
               </span>
             </div>
           );
         })}
-        <div onClick={addPeriod} style={{ fontSize: 12.5, fontWeight: 600, color: "oklch(0.4 0.1 258)", cursor: "pointer", padding: "7px 12px", border: "1px dashed oklch(0.7 0.03 258)", borderRadius: 8 }}>+ New period</div>
-        <div onClick={onExportPeriod} style={{ marginLeft: "auto", fontSize: 12.5, fontWeight: 600, color: "white", cursor: "pointer", padding: "7px 14px", borderRadius: 8, background: INK }}>Export this period as PDF</div>
+        <div onClick={addPeriod} className="ghi-btn-ghost" style={{ fontSize: 12.5, fontWeight: 600, color: MAROON, cursor: "pointer", padding: "7px 12px", border: "1px dashed oklch(0.72 0.04 20)", borderRadius: 999 }}>+ New period</div>
+        <div onClick={onExportPeriod} className="ghi-btn-primary" style={{ marginLeft: "auto", fontSize: 12.5, fontWeight: 600, color: "white", cursor: "pointer", padding: "7px 14px", borderRadius: 9, background: MAROON }}>Export this period as PDF</div>
       </div>
 
       <div style={CARD}>
@@ -482,24 +545,24 @@ function ScorecardTab({ state, setState, activePeriod, onExportPeriod }: { state
             </thead>
             <tbody>
               {activePeriod.scorecard.map((row) => (
-                <tr key={row.id} style={{ borderBottom: "1px solid oklch(0.94 0.006 258)" }}>
-                  <td style={{ ...TD, fontWeight: 600, color: "oklch(0.35 0.02 258)", minWidth: 100 }} {...editable(row.category, (v) => updateScoreField(row.id, "category", v))} />
+                <tr key={row.id} style={{ borderBottom: "1px solid oklch(0.94 0.008 55)" }}>
+                  <td style={{ ...TD, fontWeight: 600, color: "oklch(0.35 0.02 40)", minWidth: 100 }} {...editable(row.category, (v) => updateScoreField(row.id, "category", v))} />
                   <td style={{ ...TD, minWidth: 150 }} {...editable(row.metric, (v) => updateScoreField(row.id, "metric", v))} />
                   <td style={{ ...TD, color: MUTED, minWidth: 90 }} {...editable(row.target, (v) => updateScoreField(row.id, "target", v))} />
                   <td style={{ ...TD, fontWeight: 700, minWidth: 80 }} {...editable(row.actual, (v) => updateScoreField(row.id, "actual", v))} />
                   <td style={{ padding: "6px 10px" }}>
-                    <select value={row.status} onChange={(e) => updateScoreField(row.id, "status", e.target.value)} style={{ fontSize: 12.5, padding: "5px 8px", borderRadius: 6, border: "1px solid oklch(0.88 0.006 258)", background: "white", cursor: "pointer" }}>
+                    <select value={row.status} onChange={(e) => updateScoreField(row.id, "status", e.target.value)} style={{ fontSize: 12.5, padding: "5px 10px", borderRadius: 999, border: "1px solid oklch(0.88 0.012 55)", background: "white", cursor: "pointer" }}>
                       {statusOptions.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                     </select>
                   </td>
-                  <td style={{ ...TD, fontSize: 12.5, color: "oklch(0.4 0.01 258)", minWidth: 200 }} {...editable(row.notes, (v) => updateScoreField(row.id, "notes", v))} />
-                  <td style={{ textAlign: "center" }}><span onClick={() => removeScoreRow(row.id)} style={REMOVE_X}>×</span></td>
+                  <td style={{ ...TD, fontSize: 12.5, color: "oklch(0.4 0.015 50)", minWidth: 200 }} {...editable(row.notes, (v) => updateScoreField(row.id, "notes", v))} />
+                  <td style={{ textAlign: "center" }}><span onClick={() => removeScoreRow(row.id)} className="ghi-x" style={REMOVE_X}>×</span></td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-        <div onClick={addScoreRow} style={{ marginTop: 12, ...LINK_BTN }}>+ Add metric row</div>
+        <div onClick={addScoreRow} className="ghi-btn-ghost" style={{ marginTop: 12, ...LINK_BTN }}>+ Add metric row</div>
       </div>
 
       <div style={CARD}>
@@ -514,23 +577,23 @@ function ScorecardTab({ state, setState, activePeriod, onExportPeriod }: { state
             </thead>
             <tbody>
               {activePeriod.workItems.map((w) => (
-                <tr key={w.id} style={{ borderBottom: "1px solid oklch(0.94 0.006 258)" }}>
+                <tr key={w.id} style={{ borderBottom: "1px solid oklch(0.94 0.008 55)" }}>
                   <td style={{ ...TD, fontWeight: 600, minWidth: 200 }} {...editable(w.item, (v) => updateWorkField(w.id, "item", v))} />
                   <td style={{ ...TD, fontSize: 12.5, color: MUTED, minWidth: 130 }} {...editable(w.type, (v) => updateWorkField(w.id, "type", v))} />
                   <td style={{ ...TD, fontSize: 12.5, color: MUTED, minWidth: 130 }} {...editable(w.category, (v) => updateWorkField(w.id, "category", v))} />
                   <td style={{ padding: "6px 10px" }}>
-                    <select value={w.status} onChange={(e) => updateWorkField(w.id, "status", e.target.value)} style={{ fontSize: 12.5, padding: "5px 8px", borderRadius: 6, border: "1px solid oklch(0.88 0.006 258)", background: "white", cursor: "pointer" }}>
+                    <select value={w.status} onChange={(e) => updateWorkField(w.id, "status", e.target.value)} style={{ fontSize: 12.5, padding: "5px 10px", borderRadius: 999, border: "1px solid oklch(0.88 0.012 55)", background: "white", cursor: "pointer" }}>
                       {workStatusOptions.map((opt) => <option key={opt} value={opt}>{opt}</option>)}
                     </select>
                   </td>
-                  <td style={{ ...TD, fontSize: 12.5, color: "oklch(0.4 0.1 258)", minWidth: 160 }} {...editable(w.evidence, (v) => updateWorkField(w.id, "evidence", v))} />
-                  <td style={{ textAlign: "center" }}><span onClick={() => removeWorkRow(w.id)} style={REMOVE_X}>×</span></td>
+                  <td style={{ ...TD, fontSize: 12.5, color: MAROON, minWidth: 160 }} {...editable(w.evidence, (v) => updateWorkField(w.id, "evidence", v))} />
+                  <td style={{ textAlign: "center" }}><span onClick={() => removeWorkRow(w.id)} className="ghi-x" style={REMOVE_X}>×</span></td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-        <div onClick={addWorkRow} style={{ marginTop: 12, ...LINK_BTN }}>+ Add work item</div>
+        <div onClick={addWorkRow} className="ghi-btn-ghost" style={{ marginTop: 12, ...LINK_BTN }}>+ Add work item</div>
       </div>
     </div>
   );
@@ -582,7 +645,7 @@ function JournalTab({ state, setState }: { state: AppState; setState: SetAppStat
             <label style={LABEL}>Entry</label>
             <input type="text" value={state.draft.text} onChange={(e) => setState((s) => ({ ...s, draft: { ...s.draft, text: e.target.value } }))} placeholder="What happened this week?" style={FIELD} />
           </div>
-          <div onClick={submitJournal} style={{ padding: "9px 16px", background: INK, color: "white", borderRadius: 7, fontSize: 13, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>Add entry</div>
+          <div onClick={submitJournal} className="ghi-btn-primary" style={{ padding: "9px 16px", background: MAROON, color: "white", borderRadius: 9, fontSize: 13, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>Add entry</div>
         </div>
       </div>
 
@@ -594,7 +657,7 @@ function JournalTab({ state, setState }: { state: AppState; setState: SetAppStat
               <select
                 value={entry.type}
                 onChange={(e) => updateJournalField(entry.id, "type", e.target.value)}
-                style={{ fontSize: 11, fontWeight: 700, padding: "3px 6px", borderRadius: 6, background: tag.bg, color: tag.color, border: "none", flex: "none", marginTop: 1, cursor: "pointer" }}
+                style={{ ...PILL, fontSize: 11, fontWeight: 700, padding: "3px 10px", background: tag.bg, color: tag.color, border: "none", flex: "none", marginTop: 1, cursor: "pointer" }}
               >
                 <option value="win">WIN</option>
                 <option value="blocker">BLOCKER</option>
@@ -602,7 +665,7 @@ function JournalTab({ state, setState }: { state: AppState; setState: SetAppStat
                 <option value="note">NOTE</option>
               </select>
               <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 3 }}>
-                <div style={{ fontSize: 13.5, color: "oklch(0.25 0.01 258)", lineHeight: 1.5 }} {...editable(entry.text, (v) => updateJournalField(entry.id, "text", v))} />
+                <div style={{ fontSize: 13.5, color: "oklch(0.25 0.015 50)", lineHeight: 1.5 }} {...editable(entry.text, (v) => updateJournalField(entry.id, "text", v))} />
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                   <input type="date" value={entry.date} onChange={(e) => updateJournalField(entry.id, "date", e.target.value)} style={{ fontSize: 11.5, color: MUTED, fontFamily: "var(--font-jetbrains-mono)", border: "none", background: "transparent", padding: 0, cursor: "pointer" }} />
                   <span style={{ fontSize: 11.5, color: MUTED }}>·</span>
@@ -611,7 +674,7 @@ function JournalTab({ state, setState }: { state: AppState; setState: SetAppStat
                   </select>
                 </div>
               </div>
-              <span onClick={() => removeJournalEntry(entry.id)} style={REMOVE_X}>×</span>
+              <span onClick={() => removeJournalEntry(entry.id)} className="ghi-x" style={REMOVE_X}>×</span>
             </div>
           );
         })}
@@ -650,23 +713,23 @@ function OkrsTab({ state, setState }: { state: AppState; setState: SetAppState }
       {state.okrs.map((obj, i) => (
         <div key={obj.id} style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "18px 22px" }}>
           <div style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 10 }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: "oklch(0.4 0.1 258)", flex: "none", marginTop: 2 }}>Objective {i + 1}</span>
-            <div style={{ flex: 1, fontSize: 15, fontWeight: 700, color: "oklch(0.22 0.02 258)" }} {...editable(obj.objective, (v) => updateObjectiveText(obj.id, v))} />
-            <span onClick={() => removeObjective(obj.id)} style={REMOVE_X}>×</span>
+            <span style={{ fontSize: 12, fontWeight: 700, color: MAROON, flex: "none", marginTop: 2 }}>Objective {i + 1}</span>
+            <div style={{ flex: 1, fontSize: 15, fontWeight: 700, color: INK_TEXT }} {...editable(obj.objective, (v) => updateObjectiveText(obj.id, v))} />
+            <span onClick={() => removeObjective(obj.id)} className="ghi-x" style={REMOVE_X}>×</span>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 6, paddingLeft: 22 }}>
             {obj.krs.map((kr) => (
               <div key={kr.id} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <div style={{ width: 5, height: 5, borderRadius: "50%", background: "oklch(0.7 0.02 258)", flex: "none" }} />
-                <div style={{ flex: 1, fontSize: 13, color: "oklch(0.35 0.01 258)" }} {...editable(kr.text, (v) => updateKrText(obj.id, kr.id, v))} />
-                <span onClick={() => removeKr(obj.id, kr.id)} style={{ ...REMOVE_X, fontSize: 13, color: "oklch(0.75 0.01 258)" }}>×</span>
+                <div style={{ width: 5, height: 5, borderRadius: "50%", background: "oklch(0.7 0.02 40)", flex: "none" }} />
+                <div style={{ flex: 1, fontSize: 13, color: "oklch(0.35 0.015 50)" }} {...editable(kr.text, (v) => updateKrText(obj.id, kr.id, v))} />
+                <span onClick={() => removeKr(obj.id, kr.id)} className="ghi-x" style={{ ...REMOVE_X, fontSize: 13, color: "oklch(0.75 0.015 50)" }}>×</span>
               </div>
             ))}
-            <div onClick={() => addKr(obj.id)} style={{ fontSize: 12, fontWeight: 600, color: "oklch(0.4 0.1 258)", cursor: "pointer", marginTop: 2 }}>+ Add key result</div>
+            <div onClick={() => addKr(obj.id)} className="ghi-btn-ghost" style={{ fontSize: 12, fontWeight: 600, color: MAROON, cursor: "pointer", marginTop: 2, borderRadius: 6, padding: "2px 4px", marginLeft: -4 }}>+ Add key result</div>
           </div>
         </div>
       ))}
-      <div onClick={addObjective} style={DASHED_ADD}>+ Add objective</div>
+      <div onClick={addObjective} className="ghi-btn-ghost" style={DASHED_ADD}>+ Add objective</div>
     </div>
   );
 }
@@ -729,30 +792,30 @@ function ReferenceTab({ state, setState }: { state: AppState; setState: SetAppSt
       {state.kpiDefs.map((cat) => (
         <div key={cat.id} style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "18px 22px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-            <div style={{ flex: 1, fontSize: 15, fontWeight: 700, color: INK }} {...editable(cat.title, (v) => updateKpiCategoryTitle(cat.id, v))} />
-            <span onClick={() => removeKpiCategory(cat.id)} style={REMOVE_X}>×</span>
+            <div style={{ flex: 1, fontSize: 15, fontWeight: 700, color: MAROON }} {...editable(cat.title, (v) => updateKpiCategoryTitle(cat.id, v))} />
+            <span onClick={() => removeKpiCategory(cat.id)} className="ghi-x" style={REMOVE_X}>×</span>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             {cat.items.map((it) => (
-              <div key={it.id} style={{ paddingTop: 12, borderTop: "1px solid oklch(0.94 0.006 258)" }}>
+              <div key={it.id} style={{ paddingTop: 12, borderTop: "1px solid oklch(0.94 0.008 55)" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
                   <div style={{ flex: 1, fontSize: 13.5, fontWeight: 700 }} {...editable(it.name, (v) => updateKpiItemField(cat.id, it.id, "name", v))} />
-                  <span onClick={() => removeKpiItem(cat.id, it.id)} style={{ ...REMOVE_X, fontSize: 14 }}>×</span>
+                  <span onClick={() => removeKpiItem(cat.id, it.id)} className="ghi-x" style={{ ...REMOVE_X, fontSize: 14 }}>×</span>
                 </div>
-                <div style={{ fontSize: 12.5, color: "oklch(0.4 0.01 258)", lineHeight: 1.6 }}><strong>Measures:</strong> <span {...editable(it.measures, (v) => updateKpiItemField(cat.id, it.id, "measures", v))} /></div>
-                <div style={{ fontSize: 12.5, color: "oklch(0.4 0.01 258)", lineHeight: 1.6 }}><strong>Target:</strong> <span {...editable(it.target, (v) => updateKpiItemField(cat.id, it.id, "target", v))} /></div>
-                <div style={{ fontSize: 12.5, color: "oklch(0.4 0.01 258)", lineHeight: 1.6, fontFamily: "var(--font-jetbrains-mono)" }}><strong style={{ fontFamily: "var(--font-inter)" }}>Formula:</strong> <span {...editable(it.formula, (v) => updateKpiItemField(cat.id, it.id, "formula", v))} /></div>
-                <div style={{ fontSize: 12.5, color: "oklch(0.4 0.01 258)", lineHeight: 1.6 }}><strong>Source:</strong> <span {...editable(it.source, (v) => updateKpiItemField(cat.id, it.id, "source", v))} /></div>
+                <div style={{ fontSize: 12.5, color: "oklch(0.4 0.015 50)", lineHeight: 1.6 }}><strong>Measures:</strong> <span {...editable(it.measures, (v) => updateKpiItemField(cat.id, it.id, "measures", v))} /></div>
+                <div style={{ fontSize: 12.5, color: "oklch(0.4 0.015 50)", lineHeight: 1.6 }}><strong>Target:</strong> <span {...editable(it.target, (v) => updateKpiItemField(cat.id, it.id, "target", v))} /></div>
+                <div style={{ fontSize: 12.5, color: "oklch(0.4 0.015 50)", lineHeight: 1.6, fontFamily: "var(--font-jetbrains-mono)" }}><strong style={{ fontFamily: "var(--font-inter)" }}>Formula:</strong> <span {...editable(it.formula, (v) => updateKpiItemField(cat.id, it.id, "formula", v))} /></div>
+                <div style={{ fontSize: 12.5, color: "oklch(0.4 0.015 50)", lineHeight: 1.6 }}><strong>Source:</strong> <span {...editable(it.source, (v) => updateKpiItemField(cat.id, it.id, "source", v))} /></div>
               </div>
             ))}
-            <div onClick={() => addKpiItem(cat.id)} style={{ fontSize: 12, fontWeight: 600, color: "oklch(0.4 0.1 258)", cursor: "pointer" }}>+ Add metric definition</div>
+            <div onClick={() => addKpiItem(cat.id)} className="ghi-btn-ghost" style={{ fontSize: 12, fontWeight: 600, color: MAROON, cursor: "pointer", borderRadius: 6, padding: "2px 4px", marginLeft: -4 }}>+ Add metric definition</div>
           </div>
         </div>
       ))}
-      <div onClick={addKpiCategory} style={DASHED_ADD}>+ Add category</div>
+      <div onClick={addKpiCategory} className="ghi-btn-ghost" style={DASHED_ADD}>+ Add category</div>
 
       <div style={CARD}>
-        <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 12 }}>Status legend</div>
+        <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 12, color: INK_TEXT }}>Status legend</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {legendOrder.map((k) => (
             <div key={k} style={{ display: "flex", gap: 10, fontSize: 13 }}>
@@ -765,18 +828,18 @@ function ReferenceTab({ state, setState }: { state: AppState; setState: SetAppSt
 
       <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "20px 22px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ width: 40, height: 40, borderRadius: 9, background: "oklch(0.94 0.01 258)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: 800, color: "oklch(0.4 0.1 258)" }}>J</div>
+          <div style={{ width: 40, height: 40, borderRadius: 9, background: MAROON_TINT, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: 800, color: MAROON }}>J</div>
           <div>
             <div style={{ fontSize: 14.5, fontWeight: 700 }}>Jira board sync</div>
             <div style={{ fontSize: 12, color: MUTED }}>Not connected · this preview is mocked with sample data</div>
           </div>
         </div>
-        <div onClick={toggleJiraPreview} style={{ padding: "9px 16px", background: state.jiraPreview ? INK : "white", color: state.jiraPreview ? "white" : "oklch(0.35 0.01 258)", border: "1px solid oklch(0.85 0.01 258)", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+        <div onClick={toggleJiraPreview} className="ghi-btn-ghost" style={{ padding: "9px 16px", background: state.jiraPreview ? MAROON : "white", color: state.jiraPreview ? "white" : "oklch(0.35 0.015 50)", border: "1px solid oklch(0.85 0.015 50)", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
           {state.jiraPreview ? "Hide sample preview" : "Show sample preview"}
         </div>
       </div>
 
-      <div style={{ fontSize: 12.5, color: "oklch(0.45 0.01 258)", background: "oklch(0.96 0.015 85)", border: "1px solid oklch(0.85 0.05 85)", borderRadius: 10, padding: "12px 16px", lineHeight: 1.6 }}>
+      <div style={{ fontSize: 12.5, color: "oklch(0.45 0.015 50)", background: "oklch(0.96 0.015 85)", border: "1px solid oklch(0.85 0.05 85)", borderRadius: 10, padding: "12px 16px", lineHeight: 1.6 }}>
         This tab is a working sketch of what a live sync would show. A real connection needs Jira API credentials held server-side — plan is to wire this up once the app has a backend (e.g. Supabase) so keys aren&apos;t exposed in the browser.
       </div>
 
@@ -796,24 +859,24 @@ function ReferenceTab({ state, setState }: { state: AppState; setState: SetAppSt
                   {state.mockJiraIssues.map((iss) => {
                     const meta = JIRA_ISSUE_STATUS_META[iss.status];
                     return (
-                      <tr key={iss.id} style={{ borderBottom: "1px solid oklch(0.94 0.006 258)" }}>
-                        <td style={{ ...TD, fontFamily: "var(--font-jetbrains-mono)", color: "oklch(0.4 0.1 258)", fontWeight: 600 }} {...editable(iss.key, (v) => updateJiraIssueField(iss.id, "key", v))} />
+                      <tr key={iss.id} style={{ borderBottom: "1px solid oklch(0.94 0.008 55)" }}>
+                        <td style={{ ...TD, fontFamily: "var(--font-jetbrains-mono)", color: MAROON, fontWeight: 600 }} {...editable(iss.key, (v) => updateJiraIssueField(iss.id, "key", v))} />
                         <td style={TD} {...editable(iss.summary, (v) => updateJiraIssueField(iss.id, "summary", v))} />
                         <td style={{ padding: "6px 10px" }}>
-                          <select value={iss.status} onChange={(e) => updateJiraIssueField(iss.id, "status", e.target.value)} style={{ fontSize: 12, fontWeight: 600, padding: "3px 8px", borderRadius: 6, background: meta.bg, color: meta.color, border: "none", cursor: "pointer" }}>
+                          <select value={iss.status} onChange={(e) => updateJiraIssueField(iss.id, "status", e.target.value)} style={{ ...PILL, fontSize: 12, fontWeight: 600, padding: "3px 10px", background: meta.bg, color: meta.color, border: "none", cursor: "pointer" }}>
                             {jiraStatusOptions.map((opt) => <option key={opt} value={opt}>{opt}</option>)}
                           </select>
                         </td>
                         <td style={{ ...TD, fontSize: 12.5, color: MUTED }} {...editable(iss.assignee, (v) => updateJiraIssueField(iss.id, "assignee", v))} />
                         <td style={{ ...TD, fontSize: 12, color: MUTED, fontFamily: "var(--font-jetbrains-mono)" }} {...editable(iss.updated, (v) => updateJiraIssueField(iss.id, "updated", v))} />
-                        <td style={{ textAlign: "center" }}><span onClick={() => removeJiraIssue(iss.id)} style={REMOVE_X}>×</span></td>
+                        <td style={{ textAlign: "center" }}><span onClick={() => removeJiraIssue(iss.id)} className="ghi-x" style={REMOVE_X}>×</span></td>
                       </tr>
                     );
                   })}
                 </tbody>
               </table>
             </div>
-            <div onClick={addJiraIssue} style={{ marginTop: 12, ...LINK_BTN }}>+ Add sample issue row</div>
+            <div onClick={addJiraIssue} className="ghi-btn-ghost" style={{ marginTop: 12, ...LINK_BTN }}>+ Add sample issue row</div>
           </div>
 
           <div style={CARD}>
@@ -821,13 +884,13 @@ function ReferenceTab({ state, setState }: { state: AppState; setState: SetAppSt
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {state.jiraMapping.map((m) => (
                 <div key={m.id} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13 }}>
-                  <span style={{ padding: "3px 9px", borderRadius: 6, background: "oklch(0.94 0.01 258)", fontWeight: 600, fontSize: 12 }} {...editable(m.from, (v) => updateJiraMapping(m.id, "from", v))} />
-                  <span style={{ color: "oklch(0.6 0.01 258)" }}>→</span>
-                  <span style={{ flex: 1, color: "oklch(0.35 0.01 258)" }} {...editable(m.to, (v) => updateJiraMapping(m.id, "to", v))} />
-                  <span onClick={() => removeJiraMapping(m.id)} style={{ ...REMOVE_X, fontSize: 14 }}>×</span>
+                  <span style={{ ...PILL, padding: "3px 10px", background: MAROON_TINT, color: MAROON, fontWeight: 600, fontSize: 12 }} {...editable(m.from, (v) => updateJiraMapping(m.id, "from", v))} />
+                  <span style={{ color: "oklch(0.6 0.015 50)" }}>→</span>
+                  <span style={{ flex: 1, color: "oklch(0.35 0.015 50)" }} {...editable(m.to, (v) => updateJiraMapping(m.id, "to", v))} />
+                  <span onClick={() => removeJiraMapping(m.id)} className="ghi-x" style={{ ...REMOVE_X, fontSize: 14 }}>×</span>
                 </div>
               ))}
-              <div onClick={addJiraMapping} style={{ fontSize: 12, fontWeight: 600, color: "oklch(0.4 0.1 258)", cursor: "pointer", marginTop: 2 }}>+ Add mapping row</div>
+              <div onClick={addJiraMapping} className="ghi-btn-ghost" style={{ fontSize: 12, fontWeight: 600, color: MAROON, cursor: "pointer", marginTop: 2, borderRadius: 6, padding: "2px 4px", marginLeft: -4 }}>+ Add mapping row</div>
             </div>
           </div>
         </>
@@ -840,7 +903,7 @@ function ReviewQuestionList({ questions, onRespond }: { questions: Review["quest
   return (
     <>
       {questions.map((q) => (
-        <div key={q.id} style={{ borderTop: "1px solid oklch(0.94 0.006 258)", paddingTop: 14 }}>
+        <div key={q.id} style={{ borderTop: "1px solid oklch(0.94 0.008 55)", paddingTop: 14 }}>
           <div style={{ fontSize: 13.5, fontWeight: 700, marginBottom: 10 }}>{q.text}</div>
           {q.type === "score" ? (
             <div style={{ display: "flex", gap: 8 }}>
@@ -848,7 +911,7 @@ function ReviewQuestionList({ questions, onRespond }: { questions: Review["quest
                 <div
                   key={n}
                   onClick={() => onRespond(q.id, n)}
-                  style={{ width: 30, height: 30, borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12.5, fontWeight: 700, cursor: "pointer", border: `1px solid ${q.response === n ? INK : "oklch(0.88 0.006 258)"}`, background: q.response === n ? INK : "white", color: q.response === n ? "white" : "oklch(0.4 0.01 258)" }}
+                  style={{ width: 30, height: 30, borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12.5, fontWeight: 700, cursor: "pointer", border: `1px solid ${q.response === n ? MAROON : "oklch(0.88 0.012 55)"}`, background: q.response === n ? MAROON : "white", color: q.response === n ? "white" : "oklch(0.4 0.015 50)" }}
                 >
                   {n}
                 </div>
@@ -859,7 +922,7 @@ function ReviewQuestionList({ questions, onRespond }: { questions: Review["quest
               value={(q.response as string) ?? ""}
               onChange={(e) => onRespond(q.id, e.target.value)}
               placeholder="Write the answer…"
-              style={{ width: "100%", minHeight: 60, padding: "10px 12px", border: "1px solid oklch(0.88 0.006 258)", borderRadius: 8, fontSize: 13, fontFamily: "inherit", resize: "vertical" }}
+              style={{ width: "100%", minHeight: 60, padding: "10px 12px", border: "1px solid oklch(0.88 0.012 55)", borderRadius: 8, fontSize: 13, fontFamily: "inherit", resize: "vertical" }}
             />
           )}
         </div>
@@ -949,10 +1012,10 @@ function ReviewsTab({ state, setState }: { state: AppState; setState: SetAppStat
               <div style={SECTION_TITLE}>Reviewing {activeReview.subjectName}</div>
               <div style={SECTION_SUB}>Reviewer: {activeReview.reviewerName}{activeReview.reviewerRole ? ` (${activeReview.reviewerRole})` : ""} — use this to preview the reviewer&apos;s form, or to transcribe a response you collected elsewhere</div>
             </div>
-            <div onClick={() => setState((s) => ({ ...s, activeReviewId: null }))} style={{ fontSize: 12.5, fontWeight: 600, color: "oklch(0.45 0.01 258)", cursor: "pointer" }}>Close</div>
+            <div onClick={() => setState((s) => ({ ...s, activeReviewId: null }))} className="ghi-btn-ghost" style={{ fontSize: 12.5, fontWeight: 600, color: "oklch(0.45 0.015 50)", cursor: "pointer", borderRadius: 6, padding: "2px 6px" }}>Close</div>
           </div>
           <ReviewQuestionList questions={activeReview.questions} onRespond={(qid, value) => updateReviewResponse(activeReview.id, qid, value)} />
-          <div onClick={() => submitReview(activeReview.id)} style={{ padding: 10, background: INK, color: "white", borderRadius: 8, fontSize: 13.5, fontWeight: 700, cursor: "pointer", textAlign: "center" }}>Save response &amp; mark submitted</div>
+          <div onClick={() => submitReview(activeReview.id)} className="ghi-btn-primary" style={{ padding: 10, background: MAROON, color: "white", borderRadius: 8, fontSize: 13.5, fontWeight: 700, cursor: "pointer", textAlign: "center" }}>Save response &amp; mark submitted</div>
         </div>
       )}
 
@@ -980,52 +1043,52 @@ function ReviewsTab({ state, setState }: { state: AppState; setState: SetAppStat
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {state.reviewDraft.questions.map((q) => (
-            <div key={q.id} style={{ display: "flex", alignItems: "center", gap: 8, background: "oklch(0.97 0.004 258)", borderRadius: 8, padding: "8px 10px" }}>
-              <select value={q.type} onChange={(e) => updateDraftQuestionType(q.id, e.target.value as QuestionType)} style={{ fontSize: 11.5, fontWeight: 600, padding: "4px 6px", borderRadius: 6, border: "1px solid oklch(0.88 0.006 258)", background: "white", cursor: "pointer", flex: "none" }}>
+            <div key={q.id} style={{ display: "flex", alignItems: "center", gap: 8, background: "oklch(0.97 0.01 65)", borderRadius: 8, padding: "8px 10px" }}>
+              <select value={q.type} onChange={(e) => updateDraftQuestionType(q.id, e.target.value as QuestionType)} style={{ fontSize: 11.5, fontWeight: 600, padding: "4px 6px", borderRadius: 6, border: "1px solid oklch(0.88 0.012 55)", background: "white", cursor: "pointer", flex: "none" }}>
                 <option value="score">Score 1-10</option>
                 <option value="text">Written</option>
               </select>
               <div style={{ flex: 1, fontSize: 13 }} {...editable(q.text, (v) => updateDraftQuestionText(q.id, v))} />
-              <span onClick={() => removeDraftQuestion(q.id)} style={{ ...REMOVE_X, fontSize: 14 }}>×</span>
+              <span onClick={() => removeDraftQuestion(q.id)} className="ghi-x" style={{ ...REMOVE_X, fontSize: 14 }}>×</span>
             </div>
           ))}
-          <div onClick={addDraftQuestion} style={{ fontSize: 12, fontWeight: 600, color: "oklch(0.4 0.1 258)", cursor: "pointer" }}>+ Add question</div>
+          <div onClick={addDraftQuestion} className="ghi-btn-ghost" style={{ fontSize: 12, fontWeight: 600, color: MAROON, cursor: "pointer", borderRadius: 6, padding: "2px 4px", marginLeft: -4 }}>+ Add question</div>
         </div>
-        <div onClick={generateReview} style={PRIMARY_BTN}>Generate review link</div>
+        <div onClick={generateReview} className="ghi-btn-primary" style={PRIMARY_BTN}>Generate review link</div>
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: "oklch(0.35 0.01 258)" }}>All review requests</div>
+        <div style={{ fontSize: 13, fontWeight: 700, color: "oklch(0.35 0.015 50)" }}>All review requests</div>
         {state.reviews.map((r) => (
           <div key={r.id} style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "16px 18px", display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
             <div style={{ flex: 1, minWidth: 220 }}>
               <div style={{ fontSize: 13.5, fontWeight: 700 }}>{r.subjectName} <span style={{ fontWeight: 500, color: MUTED }}>— reviewed by {r.reviewerName}{r.reviewerRole ? ` (${r.reviewerRole})` : ""}</span></div>
               <div style={{ fontSize: 11.5, color: MUTED, marginTop: 2 }}>{r.questions.length} questions · requested {r.requestedDate}</div>
             </div>
-            <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 9px", borderRadius: 6, background: r.status === "submitted" ? "oklch(0.94 0.06 150)" : "oklch(0.95 0.06 85)", color: r.status === "submitted" ? "oklch(0.4 0.1 150)" : "oklch(0.5 0.12 85)" }}>
+            <span style={{ ...PILL, fontSize: 11, fontWeight: 700, padding: "3px 11px", background: r.status === "submitted" ? "oklch(0.94 0.06 150)" : "oklch(0.95 0.06 85)", color: r.status === "submitted" ? "oklch(0.4 0.1 150)" : "oklch(0.5 0.12 85)" }}>
               {r.status === "submitted" ? "Submitted" : "Pending"}
             </span>
-            <div onClick={() => copyReviewLink(r.token)} style={{ ...LINK_BTN, whiteSpace: "nowrap" }}>Copy link</div>
-            <div onClick={() => setState((s) => ({ ...s, activeReviewId: r.id }))} style={{ ...LINK_BTN, whiteSpace: "nowrap" }}>{r.status === "submitted" ? "View response" : "Preview / enter response"}</div>
-            <span onClick={() => removeReview(r.id)} style={REMOVE_X}>×</span>
+            <div onClick={() => copyReviewLink(r.token)} className="ghi-btn-ghost" style={{ ...LINK_BTN, whiteSpace: "nowrap" }}>Copy link</div>
+            <div onClick={() => setState((s) => ({ ...s, activeReviewId: r.id }))} className="ghi-btn-ghost" style={{ ...LINK_BTN, whiteSpace: "nowrap" }}>{r.status === "submitted" ? "View response" : "Preview / enter response"}</div>
+            <span onClick={() => removeReview(r.id)} className="ghi-x" style={REMOVE_X}>×</span>
           </div>
         ))}
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: "oklch(0.35 0.01 258)" }}>Summary for leadership</div>
+        <div style={{ fontSize: 13, fontWeight: 700, color: "oklch(0.35 0.015 50)" }}>Summary for leadership</div>
         {reviewSummaries.map((sub) => (
           <div key={sub.name} style={CARD}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
               <div style={{ fontSize: 14.5, fontWeight: 700 }}>{sub.name}</div>
               <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
                 <div style={{ fontSize: 12, color: MUTED }}>{sub.reviewCount} submitted</div>
-                <div style={{ fontSize: 20, fontWeight: 800, color: INK }}>{sub.avgLabel}</div>
+                <div style={{ fontSize: 20, fontWeight: 800, color: MAROON }}>{sub.avgLabel}</div>
               </div>
             </div>
             {sub.quotes.map((quote, i) => (
-              <div key={i} style={{ padding: "8px 0", borderTop: "1px solid oklch(0.94 0.006 258)", fontSize: 12.5 }}>
-                <div style={{ color: "oklch(0.3 0.01 258)", lineHeight: 1.5 }}>&ldquo;{quote.text}&rdquo;</div>
+              <div key={i} style={{ padding: "8px 0", borderTop: "1px solid oklch(0.94 0.008 55)", fontSize: 12.5 }}>
+                <div style={{ color: "oklch(0.3 0.015 50)", lineHeight: 1.5 }}>&ldquo;{quote.text}&rdquo;</div>
                 <div style={{ color: MUTED, marginTop: 3, fontSize: 11.5 }}>— {quote.reviewer}{quote.roleSuffix}, on &ldquo;{quote.question}&rdquo;</div>
               </div>
             ))}
