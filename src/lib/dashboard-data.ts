@@ -236,7 +236,7 @@ export const NAV_GROUPS: NavGroup[] = [
     id: "performance", label: "Performance",
     items: [
       { id: "scorecard", label: "Scorecard" },
-      { id: "reviews", label: "Reviews" },
+      { id: "reviews", label: "Review Summaries" },
       { id: "feedback", label: "360 Feedback" },
       { id: "reflections", label: "Weekly Reflections" },
     ],
@@ -258,7 +258,7 @@ export const TAB_LABELS: Record<TabId, string> = {
   priorities: "Weekly Priorities",
   reflections: "Weekly Reflections",
   feedback: "360 Feedback",
-  reviews: "Reviews",
+  reviews: "Review Summaries",
   reference: "Reference",
   saved: "Saved",
 };
