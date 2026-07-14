@@ -63,6 +63,10 @@ button {
   background: oklch(0.96 0.02 55) !important;
 }
 
+.ghi-chevron {
+  transition: transform 0.15s ease-out;
+}
+
 .ghi-x:hover {
   color: oklch(0.5 0.16 25);
   background: oklch(0.95 0.03 25);
@@ -73,6 +77,7 @@ button {
   .ghi-btn-primary,
   .ghi-btn-ghost,
   .ghi-sidebar-item,
+  .ghi-chevron,
   .ghi-x {
     transition: none;
   }

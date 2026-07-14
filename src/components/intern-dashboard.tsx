@@ -422,6 +422,10 @@ export default function InternDashboard() {
 }
 
 function Sidebar({ state, setState }: { state: AppState; setState: SetAppState }) {
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
+  function toggleGroup(id: string) {
+    setCollapsedGroups((c) => ({ ...c, [id]: !c[id] }));
+  }
   function renderItem(item: NavItem, indent: boolean) {
     const active = state.activeTab === item.id;
     if (item.disabled) {
@@ -462,15 +466,23 @@ function Sidebar({ state, setState }: { state: AppState; setState: SetAppState }
 
       <div style={{ height: 1, background: BORDER, margin: "10px 6px" }} />
 
-      {NAV_GROUPS.map((group) => (
-        <div key={group.id} style={{ display: "flex", flexDirection: "column", gap: 2, marginBottom: 10 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px 4px" }}>
-            <span style={{ fontSize: 12 }}>{group.icon}</span>
-            <span style={{ fontSize: 11, fontWeight: 700, color: MUTED, textTransform: "uppercase", letterSpacing: "0.05em" }}>{group.label}</span>
+      {NAV_GROUPS.map((group) => {
+        const collapsed = !!collapsedGroups[group.id];
+        return (
+          <div key={group.id} style={{ display: "flex", flexDirection: "column", gap: 2, marginBottom: 10 }}>
+            <div
+              onClick={() => toggleGroup(group.id)}
+              className="ghi-sidebar-item"
+              style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 8, cursor: "pointer", userSelect: "none" }}
+            >
+              <span style={{ fontSize: 12 }}>{group.icon}</span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: MUTED, textTransform: "uppercase", letterSpacing: "0.05em", flex: 1 }}>{group.label}</span>
+              <span className="ghi-chevron" style={{ fontSize: 9, color: MUTED, display: "inline-block", transform: collapsed ? "rotate(-90deg)" : "rotate(0deg)" }}>▾</span>
+            </div>
+            {!collapsed && group.items.map((item) => renderItem(item, true))}
           </div>
-          {group.items.map((item) => renderItem(item, true))}
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
