@@ -218,7 +218,6 @@ export interface NavItem {
 export interface NavGroup {
   id: string;
   label: string;
-  icon: string;
   items: NavItem[];
 }
 
@@ -226,7 +225,7 @@ export const NAV_STANDALONE: NavItem = { id: "dashboard", label: "Dashboard" };
 
 export const NAV_GROUPS: NavGroup[] = [
   {
-    id: "planning", label: "Planning", icon: "\u{1F3AF}",
+    id: "planning", label: "Planning",
     items: [
       { id: "okrs", label: "Goals" },
       { id: "priorities", label: "Weekly Priorities" },
@@ -234,7 +233,7 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    id: "performance", label: "Performance", icon: "\u{1F4C8}",
+    id: "performance", label: "Performance",
     items: [
       { id: "scorecard", label: "Scorecard" },
       { id: "reviews", label: "Reviews" },
@@ -243,7 +242,7 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    id: "resources", label: "Resources", icon: "\u{1F4DA}",
+    id: "resources", label: "Resources",
     items: [
       { id: "reference", label: "Reference" },
       { id: "saved", label: "Saved", disabled: true },

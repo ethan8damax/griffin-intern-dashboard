@@ -440,55 +440,54 @@ function TopNav({ state, setState, saveStatus, onExportFull }: { state: AppState
 
   return (
     <div style={{ background: "white", borderBottom: `1px solid ${BORDER}`, padding: "14px 28px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20, flexWrap: "wrap" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 200 }}>
-        <div style={{ width: 32, height: 32, borderRadius: 8, background: MAROON, color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 600, fontFamily: SERIF, flex: "none" }}>G</div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-          <div style={{ fontSize: 16, fontWeight: 600, fontFamily: SERIF, letterSpacing: "-0.01em", lineHeight: 1.2 }}>Intern Dashboard</div>
-          <div style={{ fontSize: 11, color: MUTED, lineHeight: 1.3 }}>Doeren Mayhew</div>
-        </div>
-      </div>
-
-      <div ref={navRef} style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap" }}>
-        <div
-          onClick={() => selectTab(NAV_STANDALONE.id)}
-          className="ghi-nav-tab"
-          style={{ padding: "8px 12px", borderRadius: 8, fontSize: 13.5, fontWeight: dashboardActive ? 700 : 500, cursor: "pointer", color: dashboardActive ? MAROON : MUTED, background: dashboardActive ? MAROON_TINT : "transparent" }}
-        >
-          {NAV_STANDALONE.label}
+      <div style={{ display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 200 }}>
+          <div style={{ width: 32, height: 32, borderRadius: 8, background: MAROON, color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 600, fontFamily: SERIF, flex: "none" }}>G</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+            <div style={{ fontSize: 16, fontWeight: 600, fontFamily: SERIF, letterSpacing: "-0.01em", lineHeight: 1.2 }}>Intern Dashboard</div>
+            <div style={{ fontSize: 11, color: MUTED, lineHeight: 1.3 }}>Doeren Mayhew</div>
+          </div>
         </div>
 
-        {NAV_GROUPS.map((group) => {
-          const groupActive = group.items.some((it) => it.id === state.activeTab);
-          const open = openGroup === group.id;
-          return (
-            <div key={group.id} style={{ position: "relative" }}>
-              <div
-                onClick={() => setOpenGroup(open ? null : group.id)}
-                className="ghi-nav-tab"
-                style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", borderRadius: 8, fontSize: 13.5, fontWeight: groupActive ? 700 : 500, cursor: "pointer", color: groupActive || open ? MAROON : MUTED, background: groupActive ? MAROON_TINT : "transparent", userSelect: "none" }}
-              >
-                <span style={{ fontSize: 12 }}>{group.icon}</span>
-                <span>{group.label}</span>
-                <span className="ghi-chevron" style={{ fontSize: 9, display: "inline-block", transform: open ? "rotate(180deg)" : "rotate(0deg)" }}>▾</span>
-              </div>
-              {open && (
-                <div style={{ position: "absolute", top: "calc(100% + 6px)", left: 0, minWidth: 210, background: "white", border: `1px solid ${BORDER}`, borderRadius: 10, boxShadow: "0 8px 24px oklch(0.2 0.02 40 / 0.14)", padding: 6, zIndex: 30, display: "flex", flexDirection: "column", gap: 2 }}>
-                  {group.items.map((item) => renderMenuItem(item))}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 7, ...FIELD, color: MUTED, minWidth: 160, cursor: "text" }} title="Search — coming soon">
+        <div style={{ display: "flex", alignItems: "center", gap: 7, ...FIELD, color: MUTED, minWidth: 200, cursor: "text" }} title="Search — coming soon">
           <span aria-hidden>🔍</span>
           <span style={{ fontSize: 13 }}>Search…</span>
         </div>
-        <div className="ghi-btn-ghost" style={{ width: 32, height: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", cursor: "default", fontSize: 15 }} title="Notifications — coming soon">
-          🔔
+      </div>
+
+      <div style={{ display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap" }}>
+        <div ref={navRef} style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap" }}>
+          <div
+            onClick={() => selectTab(NAV_STANDALONE.id)}
+            className="ghi-nav-tab"
+            style={{ padding: "8px 12px", borderRadius: 8, fontSize: 13.5, fontWeight: dashboardActive ? 700 : 500, cursor: "pointer", color: dashboardActive ? MAROON : MUTED, background: dashboardActive ? MAROON_TINT : "transparent" }}
+          >
+            {NAV_STANDALONE.label}
+          </div>
+
+          {NAV_GROUPS.map((group) => {
+            const groupActive = group.items.some((it) => it.id === state.activeTab);
+            const open = openGroup === group.id;
+            return (
+              <div key={group.id} style={{ position: "relative" }}>
+                <div
+                  onClick={() => setOpenGroup(open ? null : group.id)}
+                  className="ghi-nav-tab"
+                  style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", borderRadius: 8, fontSize: 13.5, fontWeight: groupActive ? 700 : 500, cursor: "pointer", color: groupActive || open ? MAROON : MUTED, background: groupActive ? MAROON_TINT : "transparent", userSelect: "none" }}
+                >
+                  <span>{group.label}</span>
+                  <span className="ghi-chevron" style={{ fontSize: 9, display: "inline-block", transform: open ? "rotate(180deg)" : "rotate(0deg)" }}>▾</span>
+                </div>
+                {open && (
+                  <div style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, minWidth: 210, background: "white", border: `1px solid ${BORDER}`, borderRadius: 10, boxShadow: "0 8px 24px oklch(0.2 0.02 40 / 0.14)", padding: 6, zIndex: 30, display: "flex", flexDirection: "column", gap: 2 }}>
+                    {group.items.map((item) => renderMenuItem(item))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
+
         <div style={{ fontSize: 11.5, color: saveStatus === "error" ? "oklch(0.5 0.16 25)" : MUTED, whiteSpace: "nowrap" }}>
           {saveStatus === "saving" && "Saving…"}
           {saveStatus === "saved" && "Saved"}
