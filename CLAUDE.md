@@ -32,4 +32,4 @@ Intern Analyst KPI & Metrics Dashboard for Grace Soegiarto + Ethan Maxey (Griffi
 
 ## Deployment
 
-Deployed on Vercel, connected to the `main` branch of the GitHub repo for auto-deploy on push. The `NEXT_PUBLIC_FIREBASE_*` env vars (see `.env.local`, gitignored) must also be set in the Vercel project settings — they aren't committed, so a fresh deploy has none of them until they're added there.
+Deployed on Vercel, connected to the `main` branch of the GitHub repo for auto-deploy on push. The `NEXT_PUBLIC_FIREBASE_*` env vars, plus the server-only `FIREBASE_ADMIN_PROJECT_ID` / `FIREBASE_ADMIN_CLIENT_EMAIL` / `FIREBASE_ADMIN_PRIVATE_KEY` (a Firebase service-account key, used by `src/lib/firebase-admin.ts` for invite links and session cookies), `ALLOWED_ADMIN_EMAILS` (comma-separated bootstrap admins), and `NEXT_PUBLIC_APP_URL` (see `.env.local`, gitignored) must also be set in the Vercel project settings — they aren't committed, so a fresh deploy has none of them until they're added there.
