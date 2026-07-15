@@ -378,8 +378,70 @@ function getAdminApp(): App {
 
 const adminApp = getAdminApp();
 export const adminAuth = getAuth(adminApp);
-export const adminDb = getFirestore(adminApp);
+
+const firestoreInstance = getFirestore(adminApp);
+firestoreInstance.settings({ ignoreUndefinedProperties: true });
+export const adminDb = firestoreInstance;
 ```
+
+**Note (added after Task 7 review):** `ignoreUndefinedProperties: true` is required
+because `UserDoc.engagementId` is optional — when an invite has no engagement (e.g.
+an admin-created invite with no `engagementId`), `resolveSignIn` sets that key to
+`undefined`, and the Admin SDK's Firestore client throws on `undefined` field values
+by default.
+
+**Note (added after Task 11 — supersedes the eager-init code above):** eager
+top-level initialization turned out to break more than a bad cold start — it made
+`npm run build` itself fail whenever `FIREBASE_ADMIN_*` env vars are unset, because
+Next.js's build-time route-data collection executes route module code even for fully
+dynamic routes. `/admin` (Task 11) was the first page to import the Admin SDK
+directly and surfaced this. Fixed by converting `adminAuth`/`adminDb` from eager
+top-level exports into lazy accessor functions, each backed by a module-level cached
+singleton that only initializes on first call:
+
+```ts
+import "server-only";
+import { cert, getApps, initializeApp, type App } from "firebase-admin/app";
+import { getAuth, type Auth } from "firebase-admin/auth";
+import { getFirestore, type Firestore } from "firebase-admin/firestore";
+
+function getAdminApp(): App {
+  const existing = getApps();
+  if (existing.length) return existing[0];
+
+  return initializeApp({
+    credential: cert({
+      projectId: process.env.FIREBASE_ADMIN_PROJECT_ID,
+      clientEmail: process.env.FIREBASE_ADMIN_CLIENT_EMAIL,
+      privateKey: process.env.FIREBASE_ADMIN_PRIVATE_KEY?.replace(/\\n/g, "\n"),
+    }),
+  });
+}
+
+let cachedAuth: Auth | undefined;
+export function getAdminAuth(): Auth {
+  if (!cachedAuth) {
+    cachedAuth = getAuth(getAdminApp());
+  }
+  return cachedAuth;
+}
+
+let cachedDb: Firestore | undefined;
+export function getAdminDb(): Firestore {
+  if (!cachedDb) {
+    cachedDb = getFirestore(getAdminApp());
+    cachedDb.settings({ ignoreUndefinedProperties: true });
+  }
+  return cachedDb;
+}
+```
+
+Every task below that reads `adminAuth.X`/`adminDb.X` as a plain import should be
+read as `getAdminAuth().X`/`getAdminDb().X` (or a local `const` assigned from calling
+those functions once at the top of a function, for call sites used many times) —
+`src/lib/auth/session.ts`, `src/lib/auth/dal.ts`, `src/lib/auth/actions.ts`,
+`src/app/admin/actions.ts`, and `src/app/admin/page.tsx` (and, going forward,
+`src/app/lead/page.tsx` in Task 12) all use the lazy function form.
 
 - [ ] **Step 3: Add new env var placeholders to `.env.local`**
 
@@ -555,7 +617,7 @@ git commit -m "Add auth DAL: getCurrentUser and requireRole"
 "use server";
 
 import { redirect } from "next/navigation";
-import { adminDb } from "@/lib/firebase-admin";
+import { adminAuth, adminDb } from "@/lib/firebase-admin";
 import { createSession, clearSession } from "@/lib/auth/session";
 import { resolveSignIn } from "@/lib/auth/reconcile";
 import type { InviteDoc, UserDoc, UserRole } from "@/lib/auth/types";
@@ -573,11 +635,14 @@ function roleHomePath(role: UserRole): string {
   return "/intern";
 }
 
-export async function completeSignIn(
-  idToken: string,
-  uid: string,
-  email: string
-): Promise<void> {
+export async function completeSignIn(idToken: string): Promise<void> {
+  const decodedToken = await adminAuth.verifyIdToken(idToken);
+  const uid = decodedToken.uid;
+  const email = decodedToken.email;
+  if (!email) {
+    throw new Error("Sign-in did not return an email address.");
+  }
+
   const normalizedEmail = email.toLowerCase();
   const userRef = adminDb.collection("users").doc(uid);
   const userSnapshot = await userRef.get();
@@ -636,6 +701,15 @@ export async function signOutAction(): Promise<void> {
 }
 ```
 
+**Note (added after review):** `completeSignIn` takes only `idToken` and derives
+`uid`/`email` from `adminAuth.verifyIdToken(idToken)` — it must NOT take `uid`/`email`
+as separate trusted parameters. Server Actions are reachable as direct POST
+endpoints, not gated by the client UI that calls them; a version that trusted
+caller-supplied `uid`/`email` would let anyone who completes sign-in for their own
+address invoke this action with a *different*, allowlisted-admin email string and get
+back a `companyAdmin` user doc bound to their own (valid) session — a full auth
+bypass. Deriving both fields from the verified token closes that off.
+
 - [ ] **Step 2: Verify the app still builds**
 
 Run: `npm run build`
@@ -662,6 +736,7 @@ git commit -m "Add completeSignIn and signOutAction server actions"
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
+import { unstable_rethrow } from "next/navigation";
 import {
   isSignInWithEmailLink,
   sendSignInLinkToEmail,
@@ -688,31 +763,45 @@ export default function LoginPage() {
     }
     if (!storedEmail) return;
 
-    setStatus("completing");
-    signInWithEmailLink(auth, storedEmail, window.location.href)
-      .then(async (credential) => {
+    async function completeLinkSignIn(emailForLink: string) {
+      setStatus("completing");
+      try {
+        const credential = await signInWithEmailLink(
+          auth,
+          emailForLink,
+          window.location.href
+        );
         window.localStorage.removeItem(EMAIL_STORAGE_KEY);
         const idToken = await credential.user.getIdToken();
-        await completeSignIn(
-          idToken,
-          credential.user.uid,
-          credential.user.email ?? storedEmail!
-        );
-      })
-      .catch((error: Error) => {
+        await completeSignIn(idToken);
+      } catch (error) {
+        // completeSignIn() ends with redirect(), which Next.js signals by
+        // rejecting this promise with a special "NEXT_REDIRECT" error meant
+        // for its own RedirectBoundary — rethrow it unchanged so navigation
+        // still happens, instead of treating a successful sign-in as a
+        // visible error.
+        unstable_rethrow(error);
         setStatus("error");
-        setErrorMessage(error.message);
-      });
+        setErrorMessage((error as Error).message);
+      }
+    }
+
+    completeLinkSignIn(storedEmail);
   }, []);
 
   async function handleSubmit(formEvent: FormEvent) {
     formEvent.preventDefault();
-    await sendSignInLinkToEmail(auth, email, {
-      url: `${window.location.origin}/login`,
-      handleCodeInApp: true,
-    });
-    window.localStorage.setItem(EMAIL_STORAGE_KEY, email);
-    setStatus("sent");
+    try {
+      await sendSignInLinkToEmail(auth, email, {
+        url: `${window.location.origin}/login`,
+        handleCodeInApp: true,
+      });
+      window.localStorage.setItem(EMAIL_STORAGE_KEY, email);
+      setStatus("sent");
+    } catch (error) {
+      setStatus("error");
+      setErrorMessage((error as Error).message);
+    }
   }
 
   if (status === "completing") {
@@ -741,6 +830,21 @@ export default function LoginPage() {
   );
 }
 ```
+
+**Note (added after review):** the original draft of this page wrapped
+`completeSignIn(idToken)` in a `.then/.catch` that treated ANY rejection as a login
+failure. But `completeSignIn` ends with `redirect(...)`, and Next.js signals a Server
+Action redirect to the client by *rejecting* the action's promise with a
+`NEXT_REDIRECT`-tagged error (meant for Next's own `RedirectBoundary`, confirmed in
+`node_modules/next/dist/client/components/router-reducer/reducers/server-action-reducer.js`
+around the `redirectLocation !== undefined` branch) — so the original code caught
+that on every *successful* sign-in and rendered it as a visible error. The fix wraps
+the flow in `try/catch` and calls `unstable_rethrow(error)` (from `next/navigation`)
+first, which re-throws redirect/not-found errors unchanged and does nothing for any
+other error — only genuine failures (bad link, `completeSignIn` throwing "No account
+found...", etc.) reach `setStatus("error")`. `handleSubmit` also gained a `try/catch`
+for the same class of gap: an unhandled `sendSignInLinkToEmail` rejection previously
+failed the form silently with no user-visible feedback.
 
 - [ ] **Step 2: Verify the app still builds**
 
@@ -815,6 +919,15 @@ git add firestore.rules
 git commit -m "Add Firestore security rules for users/engagements/invites"
 ```
 
+**Note (added after Task 7 review):** the invite lookup in `completeSignIn`
+(`.where("email", "==", ...).where("usedAt", "==", null)`) is a compound query that
+requires a Firestore composite index. On a fresh Firestore project, the first real
+invite redemption will throw `FAILED_PRECONDITION` with a console link to create the
+index — that's expected, not a bug. Create the index via that link (or manually:
+Firestore Console → Indexes → Composite → collection `invites`, fields `email`
+Ascending + `usedAt` Ascending) before relying on the invite flow. Task 14's manual
+smoke test is where this will surface if it hasn't been created yet.
+
 ---
 
 ## Task 10: Admin Server Actions — create engagement, create invite
@@ -863,6 +976,14 @@ export async function createInvite(
   const engagementId = String(formData.get("engagementId") ?? "").trim();
   if (!email || !name || !engagementId) {
     throw new Error("Name, email, and engagement are required.");
+  }
+
+  const engagementSnapshot = await adminDb
+    .collection("engagements")
+    .doc(engagementId)
+    .get();
+  if (!engagementSnapshot.exists) {
+    throw new Error("That engagement no longer exists.");
   }
 
   const invite: InviteDoc = {
