@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { adminDb } from "@/lib/firebase-admin";
+import { adminAuth, adminDb } from "@/lib/firebase-admin";
 import { createSession, clearSession } from "@/lib/auth/session";
 import { resolveSignIn } from "@/lib/auth/reconcile";
 import type { InviteDoc, UserDoc, UserRole } from "@/lib/auth/types";
@@ -19,11 +19,14 @@ function roleHomePath(role: UserRole): string {
   return "/intern";
 }
 
-export async function completeSignIn(
-  idToken: string,
-  uid: string,
-  email: string
-): Promise<void> {
+export async function completeSignIn(idToken: string): Promise<void> {
+  const decodedToken = await adminAuth.verifyIdToken(idToken);
+  const uid = decodedToken.uid;
+  const email = decodedToken.email;
+  if (!email) {
+    throw new Error("Sign-in did not return an email address.");
+  }
+
   const normalizedEmail = email.toLowerCase();
   const userRef = adminDb.collection("users").doc(uid);
   const userSnapshot = await userRef.get();
