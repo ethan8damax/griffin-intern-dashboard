@@ -21,4 +21,7 @@ function getAdminApp(): App {
 // rather than misbehave silently on first use.
 const adminApp = getAdminApp();
 export const adminAuth = getAuth(adminApp);
-export const adminDb = getFirestore(adminApp);
+
+const firestoreInstance = getFirestore(adminApp);
+firestoreInstance.settings({ ignoreUndefinedProperties: true });
+export const adminDb = firestoreInstance;
