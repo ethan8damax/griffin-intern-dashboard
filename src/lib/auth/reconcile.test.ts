@@ -92,4 +92,22 @@ describe("resolveSignIn", () => {
 
     expect(result).toEqual({ kind: "existing", user: existingUser });
   });
+
+  it("prefers a matching invite over an admin-allowlist match (documents current precedence)", () => {
+    const result = resolveSignIn({
+      email: "ethan@example.com",
+      existingUser: null,
+      matchingInvite: {
+        id: "invite-3",
+        email: "ethan@example.com",
+        name: "Ethan",
+        role: "engagementLead",
+        createdAt: 1,
+        usedAt: null,
+      },
+      allowedAdminEmails: ["ethan@example.com"],
+    });
+
+    expect(result.kind).toBe("createFromInvite");
+  });
 });

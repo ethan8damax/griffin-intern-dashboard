@@ -1,5 +1,10 @@
-import type { InviteDoc, UserDoc, UserRole } from "./types";
+import type { InviteDoc, UserDoc } from "./types";
 
+/**
+ * Caller's contract: `matchingInvite` must already be filtered to
+ * `usedAt === null`, and `email` / `allowedAdminEmails` entries must already
+ * be lowercased — this function does no normalization itself.
+ */
 export interface ReconcileInput {
   email: string;
   existingUser: UserDoc | null;
@@ -35,7 +40,7 @@ export function resolveSignIn(input: ReconcileInput): ReconcileResult {
     const user: UserDoc = {
       email,
       name: email,
-      role: "companyAdmin" as UserRole,
+      role: "companyAdmin",
       createdAt: Date.now(),
     };
     return { kind: "createFromAdminAllowlist", user };
