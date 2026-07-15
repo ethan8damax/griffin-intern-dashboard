@@ -16,11 +16,15 @@ import {
   type ReflectionCategory,
   type TabId,
   type NavItem,
+  type ProjectStatus,
+  type Priority,
   MONTH_NAMES,
   STATUS_META,
   JOURNAL_TAG_META,
   JIRA_ISSUE_STATUS_META,
   REFLECTION_CATEGORY_META,
+  PROJECT_STATUS_META,
+  PRIORITY_META,
   NAV_STANDALONE_ITEMS,
   NAV_GROUPS,
   TEAM_MEMBERS,
@@ -110,6 +114,18 @@ function Sparkline({ points, color }: { points: number[]; color: string }) {
       <path d={path} fill="none" stroke={mutedTint(color)} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
       <circle cx={lastX} cy={lastY} r={3} fill={color} stroke="white" strokeWidth={1.5} />
     </svg>
+  );
+}
+
+function ProgressBar({ percent, color }: { percent: number; color: string }) {
+  const clamped = Math.max(0, Math.min(100, percent));
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 80 }}>
+      <div style={{ flex: 1, height: 8, borderRadius: 999, background: "oklch(0.92 0.008 55)", overflow: "hidden" }}>
+        <div style={{ width: `${clamped}%`, height: "100%", background: color, borderRadius: 999 }} />
+      </div>
+      <span style={{ fontSize: 11.5, fontWeight: 700, color: "oklch(0.35 0.015 50)", flex: "none", minWidth: 30, textAlign: "right" }}>{clamped}%</span>
+    </div>
   );
 }
 
@@ -340,7 +356,7 @@ export default function InternDashboard() {
       <div style="font-size:13px;font-weight:700;color:#4a1220;margin-bottom:8px;">${escapeHtml(title)}</div>
       ${goals.map((o) => `<div style="margin-bottom:14px;">
         <div style="font-weight:700;font-size:14px;">${escapeHtml(o.objective)}${o.assignee ? ` <span style="font-weight:500;color:#666;">(${escapeHtml(o.assignee)})</span>` : ""}</div>
-        <div style="font-size:11px;color:#777;margin-top:2px;">${STATUS_META[o.status].emoji} ${STATUS_META[o.status].label}${o.targetDate ? ` · target ${escapeHtml(o.targetDate)}` : ""}</div>
+        <div style="font-size:11px;color:#777;margin-top:2px;">${STATUS_META[o.status].emoji} ${STATUS_META[o.status].label} · ${o.progress}% complete${o.targetDate ? ` · target ${escapeHtml(o.targetDate)}` : ""}</div>
         <ul style="margin:6px 0 0 18px;padding:0;font-size:12.5px;color:#444;">${o.krs.map((k) => `<li>${escapeHtml(k.text)}</li>`).join("")}</ul>
       </div>`).join("")}
     </div>`;
@@ -383,6 +399,8 @@ export default function InternDashboard() {
         )}
         {state.activeTab === "journal" && <JournalTab state={state} setState={setState} />}
         {state.activeTab === "okrs" && <GoalsTab state={state} setState={setState} />}
+        {state.activeTab === "projects" && <ProjectsTab state={state} setState={setState} />}
+        {state.activeTab === "workload" && <WorkloadTab state={state} setState={setState} />}
         {state.activeTab === "priorities" && <PrioritiesTab state={state} setState={setState} />}
         {state.activeTab === "reflections" && <ReflectionsTab state={state} setState={setState} />}
         {state.activeTab === "feedback" && <FeedbackTab state={state} setState={setState} />}
@@ -729,6 +747,9 @@ function ProfileTab({ state, setState }: { state: AppState; setState: SetAppStat
                 <span>{STATUS_META[o.status].emoji}</span>
                 <span style={{ fontWeight: 700, fontSize: 13.5 }}>{o.objective}</span>
                 {o.targetDate && <span style={{ fontSize: 11, color: MUTED, marginLeft: "auto" }}>target {o.targetDate}</span>}
+              </div>
+              <div style={{ marginTop: 6 }}>
+                <ProgressBar percent={o.progress} color={STATUS_META[o.status].color} />
               </div>
               {o.krs.length > 0 && (
                 <ul style={{ margin: "6px 0 0 22px", padding: 0, fontSize: 12.5, color: "oklch(0.35 0.015 50)" }}>
@@ -1089,7 +1110,7 @@ function GoalsTab({ state, setState }: { state: AppState; setState: SetAppState 
   function addObjective(owner: GoalOwner) {
     setState((s) => ({
       ...s,
-      okrs: [...s.okrs, { id: "o" + Date.now(), objective: owner === "team" ? "New team goal" : "New individual goal", owner, assignee: owner === "individual" ? TEAM_MEMBERS[0] : "", status: "gray" as Status, targetDate: "", krs: [] }],
+      okrs: [...s.okrs, { id: "o" + Date.now(), objective: owner === "team" ? "New team goal" : "New individual goal", owner, assignee: owner === "individual" ? TEAM_MEMBERS[0] : "", status: "gray" as Status, targetDate: "", progress: 0, krs: [] }],
     }));
   }
   function removeObjective(id: string) {
@@ -1101,6 +1122,10 @@ function GoalsTab({ state, setState }: { state: AppState; setState: SetAppState 
   }
   function updateObjectiveField(id: string, field: "assignee" | "status" | "targetDate", value: string) {
     setState((s) => ({ ...s, okrs: s.okrs.map((o) => (o.id !== id ? o : { ...o, [field]: value })) }));
+  }
+  function updateObjectiveProgress(id: string, value: number) {
+    const clamped = Math.max(0, Math.min(100, value));
+    setState((s) => ({ ...s, okrs: s.okrs.map((o) => (o.id !== id ? o : { ...o, progress: clamped })) }));
   }
   function addKr(objId: string) {
     setState((s) => ({ ...s, okrs: s.okrs.map((o) => (o.id !== objId ? o : { ...o, krs: [...o.krs, { id: "k" + Date.now(), text: "[measurable result]" }] })) }));
@@ -1140,6 +1165,15 @@ function GoalsTab({ state, setState }: { state: AppState; setState: SetAppState 
             <input type="date" value={obj.targetDate} onChange={(e) => updateObjectiveField(obj.id, "targetDate", e.target.value)} style={{ fontSize: 12, padding: "4px 6px", borderRadius: 6, border: "1px solid oklch(0.88 0.012 55)" }} />
           </div>
         </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12, paddingLeft: 22 }}>
+          <span style={{ fontSize: 11.5, color: MUTED, flex: "none" }}>Progress</span>
+          <input
+            type="range" min={0} max={100} step={5} value={obj.progress}
+            onChange={(e) => updateObjectiveProgress(obj.id, Number(e.target.value))}
+            style={{ flex: "none", width: 90, accentColor: MAROON }}
+          />
+          <ProgressBar percent={obj.progress} color={STATUS_META[obj.status].color} />
+        </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 6, paddingLeft: 22 }}>
           {obj.krs.map((kr) => (
             <div key={kr.id} style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -1170,6 +1204,224 @@ function GoalsTab({ state, setState }: { state: AppState; setState: SetAppState 
         <div style={SECTION_TITLE}>Individual Goals</div>
         {individualGoals.map((obj, i) => renderGoalCard(obj, i))}
         <div onClick={() => addObjective("individual")} className="ghi-btn-ghost" style={DASHED_ADD}>+ Add individual goal</div>
+      </div>
+    </div>
+  );
+}
+
+function ProjectsTab({ state, setState }: { state: AppState; setState: SetAppState }) {
+  const projectStatusOptions: ProjectStatus[] = ["Not Started", "In Progress", "Complete", "Blocked"];
+  const priorityOptions: Priority[] = ["Low", "Medium", "High"];
+  const pillSelect: CSSProperties = { fontSize: 12, padding: "5px 10px", borderRadius: 999, border: "none", cursor: "pointer", fontWeight: 700 };
+
+  function addProject(owner: string) {
+    setState((s) => ({
+      ...s,
+      projects: [...s.projects, { id: "pr" + Date.now(), name: "New project", owner, assignedBy: "", status: "Not Started" as ProjectStatus, dueDate: "", githubRepo: "", jiraTicket: "", deliverables: "", estimatedTime: "", priority: "Medium" as Priority }],
+    }));
+  }
+  function removeProject(id: string) {
+    if (!window.confirm("Delete this project? This cannot be undone.")) return;
+    setState((s) => ({ ...s, projects: s.projects.filter((p) => p.id !== id) }));
+  }
+  function updateProjectField(id: string, field: "name" | "assignedBy" | "status" | "dueDate" | "githubRepo" | "jiraTicket" | "deliverables" | "estimatedTime" | "priority", value: string) {
+    setState((s) => ({ ...s, projects: s.projects.map((p) => (p.id !== id ? p : { ...p, [field]: value })) }));
+  }
+
+  function renderProjectCard(p: AppState["projects"][number]) {
+    return (
+      <div key={p.id} style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "18px 22px" }}>
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 10 }}>
+          <div style={{ flex: 1, fontSize: 15, fontWeight: 700, color: INK_TEXT }} {...editable(p.name, (v) => updateProjectField(p.id, "name", v))} />
+          <span onClick={() => removeProject(p.id)} className="ghi-x" style={REMOVE_X}>&times;</span>
+        </div>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginBottom: 14 }}>
+          <select value={p.status} onChange={(e) => updateProjectField(p.id, "status", e.target.value)} style={{ ...pillSelect, background: PROJECT_STATUS_META[p.status].bg, color: PROJECT_STATUS_META[p.status].color }}>
+            {projectStatusOptions.map((opt) => <option key={opt} value={opt}>{opt}</option>)}
+          </select>
+          <select value={p.priority} onChange={(e) => updateProjectField(p.id, "priority", e.target.value)} style={{ ...pillSelect, background: PRIORITY_META[p.priority].bg, color: PRIORITY_META[p.priority].color }}>
+            {priorityOptions.map((opt) => <option key={opt} value={opt}>{opt} priority</option>)}
+          </select>
+          <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+            <span style={{ fontSize: 11.5, color: MUTED }}>Due</span>
+            <input type="date" value={p.dueDate} onChange={(e) => updateProjectField(p.id, "dueDate", e.target.value)} style={{ fontSize: 12, padding: "4px 6px", borderRadius: 6, border: "1px solid oklch(0.88 0.012 55)" }} />
+          </div>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(170px, 1fr))", gap: 12, fontSize: 12.5, marginBottom: 12 }}>
+          <div>
+            <div style={LABEL}>Assigned by</div>
+            <div style={{ marginTop: 3 }} {...editable(p.assignedBy, (v) => updateProjectField(p.id, "assignedBy", v))} />
+          </div>
+          <div>
+            <div style={LABEL}>Estimated time</div>
+            <div style={{ marginTop: 3 }} {...editable(p.estimatedTime, (v) => updateProjectField(p.id, "estimatedTime", v))} />
+          </div>
+          <div>
+            <div style={LABEL}>GitHub repo</div>
+            <div style={{ marginTop: 3, color: MAROON, fontFamily: "var(--font-jetbrains-mono)", fontSize: 11.5 }} {...editable(p.githubRepo, (v) => updateProjectField(p.id, "githubRepo", v))} />
+          </div>
+          <div>
+            <div style={LABEL}>Jira ticket (optional)</div>
+            <div style={{ marginTop: 3, fontFamily: "var(--font-jetbrains-mono)", fontSize: 11.5 }} {...editable(p.jiraTicket, (v) => updateProjectField(p.id, "jiraTicket", v))} />
+          </div>
+        </div>
+        <div>
+          <div style={LABEL}>Deliverables</div>
+          <div style={{ marginTop: 3, fontSize: 12.5, color: "oklch(0.35 0.015 50)" }} {...editable(p.deliverables, (v) => updateProjectField(p.id, "deliverables", v))} />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+      <div style={{ fontSize: 12.5, color: MUTED, background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "14px 18px" }}>
+        What each intern is actually working on — active projects, who assigned them, and where things stand.
+      </div>
+
+      {TEAM_MEMBERS.map((name) => {
+        const myProjects = state.projects.filter((p) => p.owner === name);
+        return (
+          <div key={name} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div style={SECTION_TITLE}>{name}&apos;s Projects</div>
+            {myProjects.map((p) => renderProjectCard(p))}
+            <div onClick={() => addProject(name)} className="ghi-btn-ghost" style={DASHED_ADD}>+ Add project for {name}</div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function WorkloadTab({ state, setState }: { state: AppState; setState: SetAppState }) {
+  const person = state.activeProfileName;
+
+  function selectPerson(name: string) {
+    setState((s) => ({ ...s, activeProfileName: name }));
+  }
+  function updateCapacity(value: number) {
+    const clamped = Math.max(0, Math.min(100, value));
+    setState((s) => ({ ...s, workloads: { ...s.workloads, [person]: clamped } }));
+  }
+
+  const myProjects = state.projects.filter((p) => p.owner === person);
+  const assignedByList = Array.from(new Set(myProjects.map((p) => p.assignedBy).filter(Boolean)));
+  const isBlocked = myProjects.some((p) => p.status === "Blocked");
+  const capacity = state.workloads[person] ?? 0;
+
+  const upcomingDeadlines = myProjects
+    .filter((p) => p.dueDate && p.status !== "Complete")
+    .slice()
+    .sort((a, b) => a.dueDate.localeCompare(b.dueDate))
+    .slice(0, 5);
+
+  function formatDayLabel(dateStr: string): string {
+    const d = new Date(dateStr + "T00:00:00");
+    if (Number.isNaN(d.getTime())) return dateStr;
+    return d.toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" });
+  }
+
+  const capacityColor = capacity >= 90 ? "oklch(0.58 0.19 25)" : capacity >= 70 ? "oklch(0.75 0.15 85)" : "oklch(0.6 0.14 150)";
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+      <div style={{ fontSize: 12.5, color: MUTED, background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "14px 18px" }}>
+        A quick read on bandwidth — what&apos;s active, who assigned it, what&apos;s coming due, and whether anything&apos;s stuck.
+      </div>
+
+      <div style={{ display: "flex", gap: 8 }}>
+        {TEAM_MEMBERS.map((name) => {
+          const active = name === person;
+          return (
+            <div
+              key={name}
+              onClick={() => selectPerson(name)}
+              className="ghi-pill"
+              style={{ padding: "7px 14px", borderRadius: 999, fontSize: 13, fontWeight: active ? 700 : 500, cursor: "pointer", color: active ? "white" : "oklch(0.35 0.015 50)", background: active ? MAROON : "white", border: `1px solid ${active ? MAROON : BORDER}` }}
+            >
+              {name}
+            </div>
+          );
+        })}
+      </div>
+
+      <div style={CARD}>
+        <div style={SECTION_TITLE}>Current Capacity</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 14, marginTop: 10 }}>
+          <input type="range" min={0} max={100} step={5} value={capacity} onChange={(e) => updateCapacity(Number(e.target.value))} style={{ flex: "none", width: 160, accentColor: capacityColor }} />
+          <ProgressBar percent={capacity} color={capacityColor} />
+        </div>
+        {isBlocked && (
+          <div style={{ marginTop: 10, fontSize: 12, fontWeight: 700, color: "oklch(0.45 0.14 25)" }}>⚠ Blocked on at least one project</div>
+        )}
+      </div>
+
+      <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
+        <div style={{ ...CARD, flex: 1, minWidth: 200 }}>
+          <div style={SECTION_TITLE}>Projects</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 10 }}>
+            {myProjects.map((p) => (
+              <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}>
+                <span>{p.status === "Complete" ? "✓" : p.status === "Blocked" ? "⛔" : "•"}</span>
+                <span style={{ color: "oklch(0.3 0.015 50)" }}>{p.name}</span>
+              </div>
+            ))}
+            {myProjects.length === 0 && <div style={{ fontSize: 12.5, color: MUTED }}>No projects yet.</div>}
+          </div>
+        </div>
+        <div style={{ ...CARD, flex: 1, minWidth: 200 }}>
+          <div style={SECTION_TITLE}>Assigned By</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 10 }}>
+            {assignedByList.map((name) => (
+              <div key={name} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "oklch(0.3 0.015 50)" }}>
+                <span style={{ width: 5, height: 5, borderRadius: "50%", background: "oklch(0.7 0.02 40)", flex: "none" }} />
+                {name}
+              </div>
+            ))}
+            {assignedByList.length === 0 && <div style={{ fontSize: 12.5, color: MUTED }}>Nobody assigned yet.</div>}
+          </div>
+        </div>
+        <div style={{ ...CARD, flex: 1, minWidth: 200 }}>
+          <div style={SECTION_TITLE}>Upcoming Deadlines</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 10 }}>
+            {upcomingDeadlines.map((p) => (
+              <div key={p.id} style={{ fontSize: 13, color: "oklch(0.3 0.015 50)" }}>{formatDayLabel(p.dueDate)}</div>
+            ))}
+            {upcomingDeadlines.length === 0 && <div style={{ fontSize: 12.5, color: MUTED }}>Nothing due soon.</div>}
+          </div>
+        </div>
+        <div style={{ ...CARD, flex: 1, minWidth: 160 }}>
+          <div style={SECTION_TITLE}>Blocked?</div>
+          <div style={{ fontSize: 20, fontWeight: 800, marginTop: 10, color: isBlocked ? "oklch(0.58 0.19 25)" : "oklch(0.6 0.14 150)" }}>{isBlocked ? "Yes" : "No"}</div>
+        </div>
+      </div>
+
+      <div style={CARD}>
+        <div style={SECTION_TITLE}>At a glance</div>
+        <div style={SECTION_SUB}>Every project for {person}</div>
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 480 }}>
+            <thead>
+              <tr>
+                <th style={TH}>Project</th><th style={TH}>Mentor</th><th style={TH}>Status</th><th style={TH}>Priority</th>
+              </tr>
+            </thead>
+            <tbody>
+              {myProjects.map((p) => (
+                <tr key={p.id} style={{ borderBottom: "1px solid oklch(0.94 0.008 55)" }}>
+                  <td style={{ ...TD, fontWeight: 600 }}>{p.name}</td>
+                  <td style={{ ...TD, color: MUTED }}>{p.assignedBy || "—"}</td>
+                  <td style={{ padding: "6px 10px" }}>
+                    <span style={{ ...PILL, fontSize: 11, fontWeight: 700, padding: "3px 10px", background: PROJECT_STATUS_META[p.status].bg, color: PROJECT_STATUS_META[p.status].color }}>{p.status}</span>
+                  </td>
+                  <td style={{ padding: "6px 10px" }}>
+                    <span style={{ ...PILL, fontSize: 11, fontWeight: 700, padding: "3px 10px", background: PRIORITY_META[p.priority].bg, color: PRIORITY_META[p.priority].color }}>{p.priority}</span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

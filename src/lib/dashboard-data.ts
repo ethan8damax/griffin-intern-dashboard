@@ -6,6 +6,8 @@ export type JiraStatus = "Done" | "In Review" | "In Progress" | "To Do";
 export type GoalOwner = "team" | "individual";
 export type PriorityStatus = "Done" | "In Progress" | "Not Started" | "Blocked";
 export type ReflectionCategory = "self" | "peer" | "work";
+export type ProjectStatus = "Not Started" | "In Progress" | "Complete" | "Blocked";
+export type Priority = "Low" | "Medium" | "High";
 
 export interface ScoreRow {
   id: string;
@@ -54,7 +56,22 @@ export interface Objective {
   assignee: string;
   status: Status;
   targetDate: string;
+  progress: number;
   krs: KeyResult[];
+}
+
+export interface Project {
+  id: string;
+  name: string;
+  owner: string;
+  assignedBy: string;
+  status: ProjectStatus;
+  dueDate: string;
+  githubRepo: string;
+  jiraTicket: string;
+  deliverables: string;
+  estimatedTime: string;
+  priority: Priority;
 }
 
 export interface PriorityItem {
@@ -154,7 +171,7 @@ export interface DraftJournalEntry {
   text: string;
 }
 
-export type TabId = "dashboard" | "profile" | "scorecard" | "journal" | "okrs" | "priorities" | "reflections" | "feedback" | "reviews" | "reference" | "saved";
+export type TabId = "dashboard" | "profile" | "scorecard" | "journal" | "okrs" | "projects" | "workload" | "priorities" | "reflections" | "feedback" | "reviews" | "reference" | "saved";
 
 export interface AppState {
   activeTab: TabId;
@@ -165,6 +182,8 @@ export interface AppState {
   journal: JournalEntry[];
   draft: DraftJournalEntry;
   okrs: Objective[];
+  projects: Project[];
+  workloads: Record<string, number>;
   priorityWeeks: PriorityWeek[];
   activePriorityWeekId: string;
   reflectionWeeks: ReflectionWeek[];
@@ -221,6 +240,19 @@ export const JIRA_ISSUE_STATUS_META: Record<JiraStatus, { bg: string; color: str
   "To Do": { bg: "oklch(0.94 0.008 55)", color: "oklch(0.5 0.012 50)" },
 };
 
+export const PROJECT_STATUS_META: Record<ProjectStatus, { bg: string; color: string }> = {
+  "Not Started": { bg: "oklch(0.94 0.008 55)", color: "oklch(0.5 0.012 50)" },
+  "In Progress": { bg: "oklch(0.93 0.045 20)", color: "oklch(0.38 0.11 20)" },
+  Complete: { bg: "oklch(0.94 0.06 150)", color: "oklch(0.4 0.1 150)" },
+  Blocked: { bg: "oklch(0.94 0.06 25)", color: "oklch(0.45 0.14 25)" },
+};
+
+export const PRIORITY_META: Record<Priority, { bg: string; color: string }> = {
+  Low: { bg: "oklch(0.94 0.008 55)", color: "oklch(0.5 0.012 50)" },
+  Medium: { bg: "oklch(0.95 0.06 85)", color: "oklch(0.5 0.12 85)" },
+  High: { bg: "oklch(0.94 0.06 25)", color: "oklch(0.45 0.14 25)" },
+};
+
 export interface NavItem {
   id: TabId;
   label: string;
@@ -242,6 +274,8 @@ export const NAV_GROUPS: NavGroup[] = [
     id: "planning", label: "Planning",
     items: [
       { id: "okrs", label: "Goals" },
+      { id: "projects", label: "Projects" },
+      { id: "workload", label: "Workload" },
       { id: "priorities", label: "Weekly Priorities" },
       { id: "journal", label: "Journal" },
     ],
@@ -332,12 +366,24 @@ export function initialState(): AppState {
     ],
     draft: { date: new Date().toISOString().slice(0, 10), author: "Grace Soegiarto", type: "checkin", text: "" },
     okrs: [
-      { id: "o1", objective: "Own a recurring client deliverable end-to-end with no oversight", owner: "team", assignee: "", status: "yellow", targetDate: "2026-08-31", krs: [{ id: "k1", text: "[measurable result]" }, { id: "k2", text: "[measurable result]" }] },
-      { id: "o2", objective: "Convert reliable delivery into expanded / additional billable scope", owner: "team", assignee: "", status: "gray", targetDate: "2026-09-30", krs: [{ id: "k3", text: "[measurable result]" }, { id: "k4", text: "[measurable result]" }] },
-      { id: "o3", objective: "Build a reusable toolchain that cuts our cycle time on a deliverable type", owner: "team", assignee: "", status: "gray", targetDate: "2026-09-30", krs: [{ id: "k5", text: "[measurable result]" }] },
-      { id: "o4", objective: "Get fully ramped on the ATS vendor landscape research workflow", owner: "individual", assignee: "Grace Soegiarto", status: "green", targetDate: "2026-07-31", krs: [{ id: "k6", text: "Deliver ATS discovery research independently" }] },
-      { id: "o5", objective: "Take full ownership of the ClearCompany performance-management evaluation", owner: "individual", assignee: "Ethan Maxey", status: "green", targetDate: "2026-07-31", krs: [{ id: "k7", text: "Ship ClearCo perf-mgmt research with no rework" }] },
+      { id: "o1", objective: "Own a recurring client deliverable end-to-end with no oversight", owner: "team", assignee: "", status: "yellow", targetDate: "2026-08-31", progress: 35, krs: [{ id: "k1", text: "[measurable result]" }, { id: "k2", text: "[measurable result]" }] },
+      { id: "o2", objective: "Convert reliable delivery into expanded / additional billable scope", owner: "team", assignee: "", status: "gray", targetDate: "2026-09-30", progress: 0, krs: [{ id: "k3", text: "[measurable result]" }, { id: "k4", text: "[measurable result]" }] },
+      { id: "o3", objective: "Build a reusable toolchain that cuts our cycle time on a deliverable type", owner: "team", assignee: "", status: "gray", targetDate: "2026-09-30", progress: 10, krs: [{ id: "k5", text: "[measurable result]" }] },
+      { id: "o4", objective: "Get fully ramped on the ATS vendor landscape research workflow", owner: "individual", assignee: "Grace Soegiarto", status: "green", targetDate: "2026-07-31", progress: 80, krs: [{ id: "k6", text: "Deliver ATS discovery research independently" }] },
+      { id: "o5", objective: "Take full ownership of the ClearCompany performance-management evaluation", owner: "individual", assignee: "Ethan Maxey", status: "green", targetDate: "2026-07-31", progress: 75, krs: [{ id: "k7", text: "Ship ClearCo perf-mgmt research with no rework" }] },
     ],
+    projects: [
+      { id: "pr1", name: "Intern Dashboard App", owner: "Grace Soegiarto", assignedBy: "Eli", status: "In Progress", dueDate: "2026-07-18", githubRepo: "github.com/griffin-global/intern-dashboard", jiraTicket: "", deliverables: "Ship Projects + Workload sections, deploy to Vercel", estimatedTime: "3 weeks", priority: "High" },
+      { id: "pr2", name: "ATS Vendor API Research", owner: "Grace Soegiarto", assignedBy: "Sarah", status: "Complete", dueDate: "2026-06-24", githubRepo: "", jiraTicket: "GG-142", deliverables: "ATS vendor landscape writeup", estimatedTime: "1 week", priority: "Medium" },
+      { id: "pr3", name: "Onboarding Documentation", owner: "Grace Soegiarto", assignedBy: "Jason", status: "Not Started", dueDate: "2026-07-24", githubRepo: "", jiraTicket: "", deliverables: "Draft onboarding runbook for future interns", estimatedTime: "4 days", priority: "Low" },
+      { id: "pr4", name: "ClearCompany Perf-Mgmt Evaluation", owner: "Ethan Maxey", assignedBy: "Jordan Patel", status: "In Progress", dueDate: "2026-07-20", githubRepo: "", jiraTicket: "GG-146", deliverables: "Perf-mgmt system evaluation report", estimatedTime: "2 weeks", priority: "High" },
+      { id: "pr5", name: "Onboarding Runbook Template", owner: "Ethan Maxey", assignedBy: "Jordan Patel", status: "In Progress", dueDate: "2026-07-22", githubRepo: "github.com/griffin-global/onboarding-runbook", jiraTicket: "GG-153", deliverables: "Reusable onboarding runbook template", estimatedTime: "1 week", priority: "Medium" },
+      { id: "pr6", name: "Client SLA Response Audit", owner: "Ethan Maxey", assignedBy: "Jordan Patel", status: "Blocked", dueDate: "2026-07-25", githubRepo: "", jiraTicket: "GG-155", deliverables: "SLA audit findings", estimatedTime: "3 days", priority: "Low" },
+    ],
+    workloads: {
+      "Grace Soegiarto": 70,
+      "Ethan Maxey": 60,
+    },
     priorityWeeks: [
       {
         id: "pw1", weekOf: "2026-07-13",
@@ -446,7 +492,10 @@ export function normalizeState(raw: Partial<AppState>): AppState {
       assignee: o.assignee ?? "",
       status: (o.status as Status | undefined) ?? "gray",
       targetDate: o.targetDate ?? "",
+      progress: o.progress ?? 0,
     })),
+    projects: raw.projects ?? base.projects,
+    workloads: raw.workloads ?? base.workloads,
     priorityWeeks: raw.priorityWeeks ?? base.priorityWeeks,
     activePriorityWeekId: raw.activePriorityWeekId ?? base.activePriorityWeekId,
     reflectionWeeks: raw.reflectionWeeks ?? base.reflectionWeeks,
