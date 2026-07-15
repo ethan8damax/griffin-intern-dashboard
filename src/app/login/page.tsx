@@ -7,7 +7,7 @@ import {
   sendSignInLinkToEmail,
   signInWithEmailLink,
 } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { getFirebaseAuth } from "@/lib/firebase";
 import { completeSignIn } from "@/lib/auth/actions";
 
 const EMAIL_STORAGE_KEY = "griffin-signin-email";
@@ -20,6 +20,7 @@ export default function LoginPage() {
   const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
+    const auth = getFirebaseAuth();
     if (!isSignInWithEmailLink(auth, window.location.href)) return;
 
     let storedEmail = window.localStorage.getItem(EMAIL_STORAGE_KEY);
@@ -57,7 +58,7 @@ export default function LoginPage() {
   async function handleSubmit(formEvent: FormEvent) {
     formEvent.preventDefault();
     try {
-      await sendSignInLinkToEmail(auth, email, {
+      await sendSignInLinkToEmail(getFirebaseAuth(), email, {
         url: `${window.location.origin}/login`,
         handleCodeInApp: true,
       });
