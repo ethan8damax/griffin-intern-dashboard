@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { adminAuth, adminDb } from "@/lib/firebase-admin";
+import { getAdminAuth, getAdminDb } from "@/lib/firebase-admin";
 import { requireRole } from "@/lib/auth/dal";
 import type { EngagementDoc, InviteDoc } from "@/lib/auth/types";
 
@@ -21,7 +21,7 @@ export async function createEngagement(formData: FormData): Promise<void> {
     status: "active",
     createdAt: Date.now(),
   };
-  await adminDb.collection("engagements").add(engagement);
+  await getAdminDb().collection("engagements").add(engagement);
   revalidatePath("/admin");
 }
 
@@ -37,7 +37,7 @@ export async function createInvite(
     throw new Error("Name, email, and engagement are required.");
   }
 
-  const engagementSnapshot = await adminDb
+  const engagementSnapshot = await getAdminDb()
     .collection("engagements")
     .doc(engagementId)
     .get();
@@ -53,9 +53,9 @@ export async function createInvite(
     createdAt: Date.now(),
     usedAt: null,
   };
-  await adminDb.collection("invites").add(invite);
+  await getAdminDb().collection("invites").add(invite);
 
-  const link = await adminAuth.generateSignInWithEmailLink(email, {
+  const link = await getAdminAuth().generateSignInWithEmailLink(email, {
     url: `${process.env.NEXT_PUBLIC_APP_URL}/login`,
     handleCodeInApp: true,
   });

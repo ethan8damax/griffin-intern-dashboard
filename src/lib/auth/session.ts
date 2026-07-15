@@ -1,12 +1,12 @@
 import "server-only";
 import { cookies } from "next/headers";
-import { adminAuth } from "@/lib/firebase-admin";
+import { getAdminAuth } from "@/lib/firebase-admin";
 
 const SESSION_COOKIE_NAME = "session";
 const SESSION_EXPIRES_IN_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 export async function createSession(idToken: string): Promise<void> {
-  const sessionCookie = await adminAuth.createSessionCookie(idToken, {
+  const sessionCookie = await getAdminAuth().createSessionCookie(idToken, {
     expiresIn: SESSION_EXPIRES_IN_MS,
   });
 
@@ -26,7 +26,7 @@ export async function getSessionUid(): Promise<string | null> {
   if (!sessionCookie) return null;
 
   try {
-    const decoded = await adminAuth.verifySessionCookie(sessionCookie, true);
+    const decoded = await getAdminAuth().verifySessionCookie(sessionCookie, true);
     return decoded.uid;
   } catch {
     return null;

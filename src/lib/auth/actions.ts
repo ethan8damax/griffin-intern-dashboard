@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { adminAuth, adminDb } from "@/lib/firebase-admin";
+import { getAdminAuth, getAdminDb } from "@/lib/firebase-admin";
 import { createSession, clearSession } from "@/lib/auth/session";
 import { resolveSignIn } from "@/lib/auth/reconcile";
 import type { InviteDoc, UserDoc, UserRole } from "@/lib/auth/types";
@@ -20,6 +20,9 @@ function roleHomePath(role: UserRole): string {
 }
 
 export async function completeSignIn(idToken: string): Promise<void> {
+  const adminAuth = getAdminAuth();
+  const adminDb = getAdminDb();
+
   const decodedToken = await adminAuth.verifyIdToken(idToken);
   const uid = decodedToken.uid;
   const email = decodedToken.email;

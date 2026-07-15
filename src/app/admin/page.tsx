@@ -1,4 +1,4 @@
-import { adminDb } from "@/lib/firebase-admin";
+import { getAdminDb } from "@/lib/firebase-admin";
 import { requireRole } from "@/lib/auth/dal";
 import { signOutAction } from "@/lib/auth/actions";
 import { createEngagement } from "./actions";
@@ -8,7 +8,7 @@ import type { EngagementDoc } from "@/lib/auth/types";
 export default async function AdminPage() {
   const user = await requireRole("companyAdmin");
 
-  const engagementsSnapshot = await adminDb.collection("engagements").get();
+  const engagementsSnapshot = await getAdminDb().collection("engagements").get();
   const engagements = engagementsSnapshot.docs.map((doc) => ({
     id: doc.id,
     ...(doc.data() as EngagementDoc),
