@@ -274,10 +274,15 @@ export const NAV_GROUPS: NavGroup[] = [
     id: "planning", label: "Planning",
     items: [
       { id: "okrs", label: "Goals" },
-      { id: "projects", label: "Projects" },
-      { id: "workload", label: "Workload" },
       { id: "priorities", label: "Weekly Priorities" },
       { id: "journal", label: "Journal" },
+    ],
+  },
+  {
+    id: "projects", label: "Projects",
+    items: [
+      { id: "projects", label: "Projects" },
+      { id: "workload", label: "Workload" },
     ],
   },
   {
