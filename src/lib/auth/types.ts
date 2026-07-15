@@ -6,6 +6,7 @@ export interface UserDoc {
   role: UserRole;
   engagementId?: string;
   createdAt: number;
+  status: "active" | "removed";
 }
 
 export interface EngagementDoc {

@@ -8,6 +8,7 @@ describe("resolveSignIn", () => {
       name: "Grace",
       role: "engagementLead" as const,
       createdAt: 1,
+      status: "active" as const,
     };
 
     const result = resolveSignIn({
@@ -74,6 +75,7 @@ describe("resolveSignIn", () => {
       name: "Already Signed In Before",
       role: "intern" as const,
       createdAt: 1,
+      status: "active" as const,
     };
 
     const result = resolveSignIn({

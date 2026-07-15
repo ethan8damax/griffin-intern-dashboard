@@ -32,6 +32,7 @@ export function resolveSignIn(input: ReconcileInput): ReconcileResult {
       role: matchingInvite.role,
       engagementId: matchingInvite.engagementId,
       createdAt: Date.now(),
+      status: "active",
     };
     return { kind: "createFromInvite", user, inviteId: matchingInvite.id };
   }
@@ -42,6 +43,7 @@ export function resolveSignIn(input: ReconcileInput): ReconcileResult {
       name: email,
       role: "companyAdmin",
       createdAt: Date.now(),
+      status: "active",
     };
     return { kind: "createFromAdminAllowlist", user };
   }
