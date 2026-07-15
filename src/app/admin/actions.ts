@@ -37,6 +37,14 @@ export async function createInvite(
     throw new Error("Name, email, and engagement are required.");
   }
 
+  const engagementSnapshot = await adminDb
+    .collection("engagements")
+    .doc(engagementId)
+    .get();
+  if (!engagementSnapshot.exists) {
+    throw new Error("That engagement no longer exists.");
+  }
+
   const invite: InviteDoc = {
     email,
     name,
