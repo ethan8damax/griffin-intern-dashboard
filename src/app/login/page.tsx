@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
+import { unstable_rethrow } from "next/navigation";
 import {
   isSignInWithEmailLink,
   sendSignInLinkToEmail,
@@ -39,6 +40,12 @@ export default function LoginPage() {
         const idToken = await credential.user.getIdToken();
         await completeSignIn(idToken);
       } catch (error) {
+        // completeSignIn() ends with redirect(), which Next.js signals by
+        // rejecting this promise with a special "NEXT_REDIRECT" error meant
+        // for its own RedirectBoundary — rethrow it unchanged so navigation
+        // still happens, instead of treating a successful sign-in as a
+        // visible error.
+        unstable_rethrow(error);
         setStatus("error");
         setErrorMessage((error as Error).message);
       }
@@ -49,12 +56,17 @@ export default function LoginPage() {
 
   async function handleSubmit(formEvent: FormEvent) {
     formEvent.preventDefault();
-    await sendSignInLinkToEmail(auth, email, {
-      url: `${window.location.origin}/login`,
-      handleCodeInApp: true,
-    });
-    window.localStorage.setItem(EMAIL_STORAGE_KEY, email);
-    setStatus("sent");
+    try {
+      await sendSignInLinkToEmail(auth, email, {
+        url: `${window.location.origin}/login`,
+        handleCodeInApp: true,
+      });
+      window.localStorage.setItem(EMAIL_STORAGE_KEY, email);
+      setStatus("sent");
+    } catch (error) {
+      setStatus("error");
+      setErrorMessage((error as Error).message);
+    }
   }
 
   if (status === "completing") {
