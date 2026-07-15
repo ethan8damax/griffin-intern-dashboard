@@ -18,16 +18,24 @@ export function InviteLeadForm({
   const [engagementId, setEngagementId] = useState(engagements[0]?.id ?? "");
   const [link, setLink] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  // engagementId can go stale (e.g. "" from mounting with zero engagements)
+  // once the parent's `engagements` prop refreshes without remounting this
+  // component (revalidatePath triggers a refresh, not a remount). Derive the
+  // effective selection at render time instead of syncing via an effect.
+  const selectedEngagementId = engagementId || engagements[0]?.id || "";
 
   async function handleSubmit(formEvent: FormEvent) {
     formEvent.preventDefault();
     setError("");
     setLink(null);
+    setSubmitting(true);
 
     const formData = new FormData();
     formData.set("name", name);
     formData.set("email", email);
-    formData.set("engagementId", engagementId);
+    formData.set("engagementId", selectedEngagementId);
 
     try {
       const result = await createInvite(formData);
@@ -36,6 +44,8 @@ export function InviteLeadForm({
       setEmail("");
     } catch (submitError) {
       setError((submitError as Error).message);
+    } finally {
+      setSubmitting(false);
     }
   }
 
@@ -65,7 +75,7 @@ export function InviteLeadForm({
       <label htmlFor="lead-engagement">Engagement</label>
       <select
         id="lead-engagement"
-        value={engagementId}
+        value={selectedEngagementId}
         onChange={(inputEvent) => setEngagementId(inputEvent.target.value)}
         required
       >
@@ -76,7 +86,9 @@ export function InviteLeadForm({
         ))}
       </select>
 
-      <button type="submit">Create invite</button>
+      <button type="submit" disabled={submitting}>
+        Create invite
+      </button>
       {error && <p role="alert">{error}</p>}
       {link && (
         <p>
