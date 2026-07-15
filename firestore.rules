@@ -34,7 +34,8 @@ service cloud.firestore {
 
     match /engagements/{engagementId} {
       allow read: if request.auth != null &&
-        (resource.data.leadUserId == request.auth.uid || isActiveCompanyAdmin());
+        ((resource.data.leadUserId == request.auth.uid && callerDoc().status != "removed") ||
+         isActiveCompanyAdmin());
       allow write: if isActiveCompanyAdmin();
     }
 
