@@ -3,7 +3,7 @@ import { requireRole } from "@/lib/auth/dal";
 import { signOutAction } from "@/lib/auth/actions";
 import { createEngagement } from "./actions";
 import { InviteLeadForm } from "./invite-lead-form";
-import type { EngagementDoc } from "@/lib/auth/types";
+import type { EngagementDoc, UserDoc } from "@/lib/auth/types";
 
 export default async function AdminPage() {
   const user = await requireRole("companyAdmin");
@@ -12,6 +12,12 @@ export default async function AdminPage() {
   const engagements = engagementsSnapshot.docs.map((doc) => ({
     id: doc.id,
     ...(doc.data() as EngagementDoc),
+  }));
+
+  const usersSnapshot = await getAdminDb().collection("users").get();
+  const users = usersSnapshot.docs.map((doc) => ({
+    uid: doc.id,
+    ...(doc.data() as UserDoc),
   }));
 
   return (
@@ -27,6 +33,15 @@ export default async function AdminPage() {
           <li key={engagement.id}>
             {engagement.name} ({engagement.client}) —{" "}
             {engagement.leadUserId ? "lead assigned" : "no lead yet"}
+          </li>
+        ))}
+      </ul>
+
+      <h2>Users</h2>
+      <ul>
+        {users.map((listedUser) => (
+          <li key={listedUser.uid}>
+            {listedUser.name} ({listedUser.email}) — {listedUser.role}
           </li>
         ))}
       </ul>
