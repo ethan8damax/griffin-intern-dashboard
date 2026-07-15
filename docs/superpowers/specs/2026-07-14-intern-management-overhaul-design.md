@@ -31,8 +31,10 @@ Replace the single `dashboard/main` blob with real collections:
 - `engagements/{engagementId}` — name, client, leadUserId, jiraBoardId, status
 - `engagements/{engagementId}/interns/{internId}` — profile, linked userId, start/end dates
 - Per-intern subcollections for goals, journal, priorities, reflections, reviews,
-  timeline/milestones — same shapes as today's types in `dashboard-data.ts`, scoped to
-  one intern within one engagement instead of one global document.
+  projects, workload, timeline/milestones — same shapes as today's types in
+  `dashboard-data.ts` (including the Projects/Workload/goal-progress fields added
+  2026-07-15), scoped to one intern within one engagement instead of one global
+  document.
 
 ### Auth & roles
 
@@ -68,6 +70,15 @@ No color-coded grid, no legend to memorize. Built in Sprint 3 from Goals + Revie
 once Sprint 4 (Jira sync) lands — no rework needed when that happens, the rollup just
 gets a richer input.
 
+The Projects tab added 2026-07-15 gives Sprint 3 an earlier real signal than
+originally planned: each project already carries a `status` (including `"Blocked"`)
+and a `dueDate`, so the rollup can fold in "any blocked projects" / "on-time project
+completion" from day one of Sprint 3, without waiting on Jira sync. `Objective.progress`
+and the per-intern `workloads` "Current Capacity" number are both manually-set sliders,
+not derived — same manual-upkeep tradeoff the old Scorecard had, so don't treat them as
+free auto-computed inputs to the rollup; they stay display-only unless a future sprint
+adds real derivation.
+
 ## Sprint roadmap
 
 Each sprint gets its own detailed implementation plan (via the writing-plans skill)
@@ -90,12 +101,15 @@ Milestones carry a date + status and can optionally link to another entity (e.g.
 milestone that points at a review).
 
 ### Sprint 3 — Intern self-service + simplified UI
-Rework Goals, Journal, Priorities, Reflections, and Reviews to be scoped to "whichever
-intern is signed in" instead of hardcoded Grace/Ethan. Collapse today's 8+ flat nav
-tabs into something simpler — likely one "My Internship" home surfacing Timeline +
-current goals + recent activity, with detail views tucked behind it. Delete the old
-Scorecard tab and its Reference-tab KPI definitions; build the plain-language rollup
-described above.
+Rework Goals, Journal, Priorities, Reflections, Reviews, Projects, and Workload to be
+scoped to "whichever intern is signed in" instead of hardcoded Grace/Ethan (Projects
+and Workload, added 2026-07-15, join by intern name the same way Profile/Goals/etc.
+already do — same rename-orphans-data caveat applies, see CLAUDE.md). Collapse today's
+10+ flat nav tabs into something simpler — likely one "My Internship" home surfacing
+Timeline + current goals + recent activity, with detail views tucked behind it (a
+"My Projects" or "My Workload" detail view naturally fits this same simplified shape).
+Delete the old Scorecard tab and its Reference-tab KPI definitions; build the
+plain-language rollup described above.
 
 ### Sprint 4 — Jira two-way sync
 Each engagement is linked to one Jira board (set up once, mapped in the dashboard).
