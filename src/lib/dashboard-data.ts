@@ -177,6 +177,7 @@ export interface AppState {
   activeTab: TabId;
   activeProfileName: string;
   internProfiles: Record<string, InternProfileInfo>;
+  tabDescriptions: Partial<Record<TabId, string>>;
   activePeriodId: string;
   periods: Period[];
   journal: JournalEntry[];
@@ -327,6 +328,17 @@ export function initialState(): AppState {
   return {
     activeTab: "dashboard",
     activeProfileName: "Grace Soegiarto",
+    tabDescriptions: {
+      dashboard: "A snapshot of where things stand across the engagement — jump into any section for the full picture.",
+      okrs: "Set 2-4 goals per cycle in each section. Keep them outcome-focused, team goals grow the engagement, individual goals grow the person.",
+      projects: "What each intern is actually working on — active projects, who assigned them, and where things stand.",
+      workload: "A quick read on bandwidth — what's active, who assigned it, what's coming due, and whether anything's stuck.",
+      priorities: "Set the handful of things that must happen this week. Link a priority to a goal to see how the week ladders up.",
+      reflections: "A weekly pause to reflect honestly, on yourself, on each other, and on how the work is actually going.",
+      reference: "These definitions drive what \"on track\" means for each scorecard metric — edit them as the engagement evolves.",
+      reviews: "A read-only look at review history and results — go to 360 Feedback to request a new review or respond to one.",
+      saved: "Saved isn't built yet — this is a placeholder for a future way to star and quickly get back to specific journal entries, goals, or reference definitions.",
+    },
     internProfiles: {
       "Grace Soegiarto": {
         name: "Grace Soegiarto", initials: "GS", role: "Analyst Intern",
@@ -507,5 +519,6 @@ export function normalizeState(raw: Partial<AppState>): AppState {
     activeReflectionWeekId: raw.activeReflectionWeekId ?? base.activeReflectionWeekId,
     activeProfileName: raw.activeProfileName ?? base.activeProfileName,
     internProfiles: raw.internProfiles ?? base.internProfiles,
+    tabDescriptions: { ...base.tabDescriptions, ...(raw.tabDescriptions ?? {}) },
   };
 }

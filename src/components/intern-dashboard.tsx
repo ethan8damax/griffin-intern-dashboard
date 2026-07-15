@@ -404,9 +404,9 @@ export default function InternDashboard() {
         {state.activeTab === "priorities" && <PrioritiesTab state={state} setState={setState} />}
         {state.activeTab === "reflections" && <ReflectionsTab state={state} setState={setState} />}
         {state.activeTab === "feedback" && <FeedbackTab state={state} setState={setState} />}
-        {state.activeTab === "reviews" && <ReviewsTab state={state} />}
+        {state.activeTab === "reviews" && <ReviewsTab state={state} setState={setState} />}
         {state.activeTab === "reference" && <ReferenceTab state={state} setState={setState} />}
-        {state.activeTab === "saved" && <SavedTab />}
+        {state.activeTab === "saved" && <SavedTab state={state} setState={setState} />}
       </div>
     </div>
   );
@@ -559,9 +559,10 @@ function DashboardTab({ state, setState, activePeriod }: { state: AppState; setS
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-      <div style={{ fontSize: 12.5, color: MUTED, background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "14px 18px" }}>
-        A snapshot of where things stand across the engagement — jump into any section for the full picture.
-      </div>
+      <div
+        style={{ fontSize: 12.5, color: MUTED, background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "14px 18px" }}
+        {...editable(state.tabDescriptions.dashboard ?? "", (v) => setState((s) => ({ ...s, tabDescriptions: { ...s.tabDescriptions, dashboard: v } })))}
+      />
 
       <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
         <div style={{ ...CARD, flex: 1, minWidth: 240 }}>
@@ -1190,9 +1191,10 @@ function GoalsTab({ state, setState }: { state: AppState; setState: SetAppState 
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <div style={{ fontSize: 12.5, color: MUTED, background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "14px 18px" }}>
-        Set 2-4 goals per cycle in each section. Keep them outcome-focused, team goals grow the engagement, individual goals grow the person.
-      </div>
+      <div
+        style={{ fontSize: 12.5, color: MUTED, background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "14px 18px" }}
+        {...editable(state.tabDescriptions.okrs ?? "", (v) => setState((s) => ({ ...s, tabDescriptions: { ...s.tabDescriptions, okrs: v } })))}
+      />
 
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         <div style={SECTION_TITLE}>Team Goals</div>
@@ -1299,7 +1301,7 @@ function ProjectsTab({ state, setState }: { state: AppState; setState: SetAppSta
             <div style={{ marginTop: 3, color: MAROON, fontFamily: "var(--font-jetbrains-mono)", fontSize: 11.5 }} {...editable(p.githubRepo, (v) => updateProjectField(p.id, "githubRepo", v))} />
           </div>
           <div>
-            <div style={LABEL}>Jira ticket (optional)</div>
+            <div style={LABEL}>Jira epic/ticket (optional)</div>
             <div style={{ marginTop: 3, fontFamily: "var(--font-jetbrains-mono)", fontSize: 11.5 }} {...editable(p.jiraTicket, (v) => updateProjectField(p.id, "jiraTicket", v))} />
           </div>
         </div>
@@ -1313,9 +1315,10 @@ function ProjectsTab({ state, setState }: { state: AppState; setState: SetAppSta
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-      <div style={{ fontSize: 12.5, color: MUTED, background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "14px 18px" }}>
-        What each intern is actually working on — active projects, who assigned them, and where things stand.
-      </div>
+      <div
+        style={{ fontSize: 12.5, color: MUTED, background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "14px 18px" }}
+        {...editable(state.tabDescriptions.projects ?? "", (v) => setState((s) => ({ ...s, tabDescriptions: { ...s.tabDescriptions, projects: v } })))}
+      />
 
       {TEAM_MEMBERS.map((name) => {
         const myProjects = state.projects.filter((p) => p.owner === name);
@@ -1363,9 +1366,10 @@ function WorkloadTab({ state, setState }: { state: AppState; setState: SetAppSta
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-      <div style={{ fontSize: 12.5, color: MUTED, background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "14px 18px" }}>
-        A quick read on bandwidth — what&apos;s active, who assigned it, what&apos;s coming due, and whether anything&apos;s stuck.
-      </div>
+      <div
+        style={{ fontSize: 12.5, color: MUTED, background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "14px 18px" }}
+        {...editable(state.tabDescriptions.workload ?? "", (v) => setState((s) => ({ ...s, tabDescriptions: { ...s.tabDescriptions, workload: v } })))}
+      />
 
       <div style={{ display: "flex", gap: 8 }}>
         {TEAM_MEMBERS.map((name) => {
@@ -1530,9 +1534,10 @@ function PrioritiesTab({ state, setState }: { state: AppState; setState: SetAppS
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-      <div style={{ fontSize: 12.5, color: MUTED, background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "14px 18px" }}>
-        Set the handful of things that must happen this week. Link a priority to a goal to see how the week ladders up.
-      </div>
+      <div
+        style={{ fontSize: 12.5, color: MUTED, background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "14px 18px" }}
+        {...editable(state.tabDescriptions.priorities ?? "", (v) => setState((s) => ({ ...s, tabDescriptions: { ...s.tabDescriptions, priorities: v } })))}
+      />
       <WeekPicker weeks={state.priorityWeeks} activeWeekId={activeWeek.id} onSelect={(id) => setState((s) => ({ ...s, activePriorityWeekId: id }))} onAdd={addWeek} onRemove={removeWeek} />
 
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
@@ -1611,9 +1616,10 @@ function ReflectionsTab({ state, setState }: { state: AppState; setState: SetApp
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-      <div style={{ fontSize: 12.5, color: MUTED, background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "14px 18px" }}>
-        A weekly pause to reflect honestly, on yourself, on each other, and on how the work is actually going.
-      </div>
+      <div
+        style={{ fontSize: 12.5, color: MUTED, background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "14px 18px" }}
+        {...editable(state.tabDescriptions.reflections ?? "", (v) => setState((s) => ({ ...s, tabDescriptions: { ...s.tabDescriptions, reflections: v } })))}
+      />
       <WeekPicker weeks={state.reflectionWeeks} activeWeekId={activeWeek.id} onSelect={(id) => setState((s) => ({ ...s, activeReflectionWeekId: id }))} onAdd={addWeek} onRemove={removeWeek} />
 
       {categories.map((cat) => {
@@ -1711,7 +1717,10 @@ function ReferenceTab({ state, setState }: { state: AppState; setState: SetAppSt
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <div style={{ fontSize: 12.5, color: MUTED, background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "14px 18px" }}>These definitions drive what &quot;on track&quot; means for each scorecard metric — edit them as the engagement evolves.</div>
+      <div
+        style={{ fontSize: 12.5, color: MUTED, background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "14px 18px" }}
+        {...editable(state.tabDescriptions.reference ?? "", (v) => setState((s) => ({ ...s, tabDescriptions: { ...s.tabDescriptions, reference: v } })))}
+      />
 
       {state.kpiDefs.map((cat) => (
         <div key={cat.id} style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "18px 22px" }}>
@@ -1985,7 +1994,7 @@ function FeedbackTab({ state, setState }: { state: AppState; setState: SetAppSta
   );
 }
 
-function ReviewsTab({ state }: { state: AppState }) {
+function ReviewsTab({ state, setState }: { state: AppState; setState: SetAppState }) {
   const reviewSummaries = ["Ethan Maxey", "Grace Soegiarto"].map((name) => {
     const submitted = state.reviews.filter((r) => r.subjectName === name && r.status === "submitted");
     const scores: number[] = [];
@@ -2005,9 +2014,10 @@ function ReviewsTab({ state }: { state: AppState }) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-      <div style={{ fontSize: 12.5, color: MUTED, background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "14px 18px" }}>
-        A read-only look at review history and results — go to 360 Feedback to request a new review or respond to one.
-      </div>
+      <div
+        style={{ fontSize: 12.5, color: MUTED, background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "14px 18px" }}
+        {...editable(state.tabDescriptions.reviews ?? "", (v) => setState((s) => ({ ...s, tabDescriptions: { ...s.tabDescriptions, reviews: v } })))}
+      />
 
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         <div style={{ fontSize: 13, fontWeight: 700, color: "oklch(0.35 0.015 50)" }}>All review requests</div>
@@ -2049,12 +2059,13 @@ function ReviewsTab({ state }: { state: AppState }) {
   );
 }
 
-function SavedTab() {
+function SavedTab({ state, setState }: { state: AppState; setState: SetAppState }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <div style={{ fontSize: 12.5, color: MUTED, background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "14px 18px" }}>
-        Saved isn&apos;t built yet — this is a placeholder for a future way to star and quickly get back to specific journal entries, goals, or reference definitions.
-      </div>
+      <div
+        style={{ fontSize: 12.5, color: MUTED, background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "14px 18px" }}
+        {...editable(state.tabDescriptions.saved ?? "", (v) => setState((s) => ({ ...s, tabDescriptions: { ...s.tabDescriptions, saved: v } })))}
+      />
       <div style={{ ...CARD, textAlign: "center", padding: "48px 22px", color: MUTED }}>
         <div style={{ fontSize: 28, marginBottom: 10 }}>⭐</div>
         <div style={{ fontSize: 14, fontWeight: 700, color: INK_TEXT, marginBottom: 4 }}>Nothing saved yet</div>
