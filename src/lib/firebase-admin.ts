@@ -16,6 +16,9 @@ function getAdminApp(): App {
   });
 }
 
+// Eager, top-level init is deliberate: any route importing this file requires
+// FIREBASE_ADMIN_* to be set correctly, and should fail loudly at cold start
+// rather than misbehave silently on first use.
 const adminApp = getAdminApp();
 export const adminAuth = getAuth(adminApp);
 export const adminDb = getFirestore(adminApp);
