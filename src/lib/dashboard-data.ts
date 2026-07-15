@@ -69,6 +69,7 @@ export interface Project {
   dueDate: string;
   githubRepo: string;
   jiraTicket: string;
+  projectLink: string;
   deliverables: string;
   estimatedTime: string;
   priority: Priority;
@@ -390,12 +391,12 @@ export function initialState(): AppState {
       { id: "o5", objective: "Take full ownership of the ClearCompany performance-management evaluation", owner: "individual", assignee: "Ethan Maxey", status: "green", targetDate: "2026-07-31", progress: 75, krs: [{ id: "k7", text: "Ship ClearCo perf-mgmt research with no rework" }] },
     ],
     projects: [
-      { id: "pr1", name: "Intern Dashboard App", owner: "Grace Soegiarto", assignedBy: "Eli", status: "In Progress", dueDate: "2026-07-18", githubRepo: "github.com/griffin-global/intern-dashboard", jiraTicket: "", deliverables: "Ship Projects + Workload sections, deploy to Vercel", estimatedTime: "3 weeks", priority: "High" },
-      { id: "pr2", name: "ATS Vendor API Research", owner: "Grace Soegiarto", assignedBy: "Sarah", status: "Complete", dueDate: "2026-06-24", githubRepo: "", jiraTicket: "GG-142", deliverables: "ATS vendor landscape writeup", estimatedTime: "1 week", priority: "Medium" },
-      { id: "pr3", name: "Onboarding Documentation", owner: "Grace Soegiarto", assignedBy: "Jason", status: "Not Started", dueDate: "2026-07-24", githubRepo: "", jiraTicket: "", deliverables: "Draft onboarding runbook for future interns", estimatedTime: "4 days", priority: "Low" },
-      { id: "pr4", name: "ClearCompany Perf-Mgmt Evaluation", owner: "Ethan Maxey", assignedBy: "Jordan Patel", status: "In Progress", dueDate: "2026-07-20", githubRepo: "", jiraTicket: "GG-146", deliverables: "Perf-mgmt system evaluation report", estimatedTime: "2 weeks", priority: "High" },
-      { id: "pr5", name: "Onboarding Runbook Template", owner: "Ethan Maxey", assignedBy: "Jordan Patel", status: "In Progress", dueDate: "2026-07-22", githubRepo: "github.com/griffin-global/onboarding-runbook", jiraTicket: "GG-153", deliverables: "Reusable onboarding runbook template", estimatedTime: "1 week", priority: "Medium" },
-      { id: "pr6", name: "Client SLA Response Audit", owner: "Ethan Maxey", assignedBy: "Jordan Patel", status: "Blocked", dueDate: "2026-07-25", githubRepo: "", jiraTicket: "GG-155", deliverables: "SLA audit findings", estimatedTime: "3 days", priority: "Low" },
+      { id: "pr1", name: "Intern Dashboard App", owner: "Grace Soegiarto", assignedBy: "Eli", status: "In Progress", dueDate: "2026-07-18", githubRepo: "github.com/griffin-global/intern-dashboard", jiraTicket: "", projectLink: "intern-dashboard.vercel.app", deliverables: "Ship Projects + Workload sections, deploy to Vercel", estimatedTime: "3 weeks", priority: "High" },
+      { id: "pr2", name: "ATS Vendor API Research", owner: "Grace Soegiarto", assignedBy: "Sarah", status: "Complete", dueDate: "2026-06-24", githubRepo: "", jiraTicket: "GG-142", projectLink: "", deliverables: "ATS vendor landscape writeup", estimatedTime: "1 week", priority: "Medium" },
+      { id: "pr3", name: "Onboarding Documentation", owner: "Grace Soegiarto", assignedBy: "Jason", status: "Not Started", dueDate: "2026-07-24", githubRepo: "", jiraTicket: "", projectLink: "", deliverables: "Draft onboarding runbook for future interns", estimatedTime: "4 days", priority: "Low" },
+      { id: "pr4", name: "ClearCompany Perf-Mgmt Evaluation", owner: "Ethan Maxey", assignedBy: "Jordan Patel", status: "In Progress", dueDate: "2026-07-20", githubRepo: "", jiraTicket: "GG-146", projectLink: "", deliverables: "Perf-mgmt system evaluation report", estimatedTime: "2 weeks", priority: "High" },
+      { id: "pr5", name: "Onboarding Runbook Template", owner: "Ethan Maxey", assignedBy: "Jordan Patel", status: "In Progress", dueDate: "2026-07-22", githubRepo: "github.com/griffin-global/onboarding-runbook", jiraTicket: "GG-153", projectLink: "", deliverables: "Reusable onboarding runbook template", estimatedTime: "1 week", priority: "Medium" },
+      { id: "pr6", name: "Client SLA Response Audit", owner: "Ethan Maxey", assignedBy: "Jordan Patel", status: "Blocked", dueDate: "2026-07-25", githubRepo: "", jiraTicket: "GG-155", projectLink: "", deliverables: "SLA audit findings", estimatedTime: "3 days", priority: "Low" },
     ],
     workloads: {
       "Grace Soegiarto": 70,
@@ -511,7 +512,7 @@ export function normalizeState(raw: Partial<AppState>): AppState {
       targetDate: o.targetDate ?? "",
       progress: o.progress ?? 0,
     })),
-    projects: raw.projects ?? base.projects,
+    projects: (raw.projects ?? base.projects).map((p) => ({ ...p, projectLink: (p.projectLink as string | undefined) ?? "" })),
     workloads: raw.workloads ?? base.workloads,
     priorityWeeks: raw.priorityWeeks ?? base.priorityWeeks,
     activePriorityWeekId: raw.activePriorityWeekId ?? base.activePriorityWeekId,

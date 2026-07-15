@@ -1221,14 +1221,14 @@ function ProjectsTab({ state, setState }: { state: AppState; setState: SetAppSta
   function addProject(owner: string) {
     setState((s) => ({
       ...s,
-      projects: [...s.projects, { id: "pr" + Date.now(), name: "New project", owner, assignedBy: "", status: "Not Started" as ProjectStatus, dueDate: "", githubRepo: "", jiraTicket: "", deliverables: "", estimatedTime: "", priority: "Medium" as Priority }],
+      projects: [...s.projects, { id: "pr" + Date.now(), name: "New project", owner, assignedBy: "", status: "Not Started" as ProjectStatus, dueDate: "", githubRepo: "", jiraTicket: "", projectLink: "", deliverables: "", estimatedTime: "", priority: "Medium" as Priority }],
     }));
   }
   function removeProject(id: string) {
     if (!window.confirm("Delete this project? This cannot be undone.")) return;
     setState((s) => ({ ...s, projects: s.projects.filter((p) => p.id !== id) }));
   }
-  function updateProjectField(id: string, field: "name" | "assignedBy" | "status" | "dueDate" | "githubRepo" | "jiraTicket" | "deliverables" | "estimatedTime" | "priority", value: string) {
+  function updateProjectField(id: string, field: "name" | "assignedBy" | "status" | "dueDate" | "githubRepo" | "jiraTicket" | "projectLink" | "deliverables" | "estimatedTime" | "priority", value: string) {
     setState((s) => ({ ...s, projects: s.projects.map((p) => (p.id !== id ? p : { ...p, [field]: value })) }));
   }
   function reorderProject(owner: string, fromId: string, toId: string) {
@@ -1295,6 +1295,10 @@ function ProjectsTab({ state, setState }: { state: AppState; setState: SetAppSta
           <div>
             <div style={LABEL}>Estimated time</div>
             <div style={{ marginTop: 3 }} {...editable(p.estimatedTime, (v) => updateProjectField(p.id, "estimatedTime", v))} />
+          </div>
+          <div>
+            <div style={LABEL}>Project link</div>
+            <div style={{ marginTop: 3, color: MAROON, fontFamily: "var(--font-jetbrains-mono)", fontSize: 11.5 }} {...editable(p.projectLink, (v) => updateProjectField(p.id, "projectLink", v))} />
           </div>
           <div>
             <div style={LABEL}>GitHub repo</div>
