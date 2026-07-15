@@ -61,6 +61,10 @@ export async function completeSignIn(idToken: string): Promise<void> {
     throw new Error("No account found for this email. Contact your admin.");
   }
 
+  if (result.kind === "existing" && result.user.status === "removed") {
+    throw new Error("No account found for this email. Contact your admin.");
+  }
+
   if (result.kind === "createFromInvite") {
     await userRef.set(result.user);
     await adminDb

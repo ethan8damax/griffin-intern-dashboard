@@ -21,7 +21,7 @@ export async function requireRole(
   role: UserRole
 ): Promise<UserDoc & { uid: string }> {
   const user = await getCurrentUser();
-  if (!user || user.role !== role) {
+  if (!user || user.role !== role || user.status === "removed") {
     redirect("/login");
   }
   return user;
