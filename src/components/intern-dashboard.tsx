@@ -1213,6 +1213,8 @@ function ProjectsTab({ state, setState }: { state: AppState; setState: SetAppSta
   const projectStatusOptions: ProjectStatus[] = ["Not Started", "In Progress", "Complete", "Blocked"];
   const priorityOptions: Priority[] = ["Low", "Medium", "High"];
   const pillSelect: CSSProperties = { fontSize: 12, padding: "5px 10px", borderRadius: 999, border: "none", cursor: "pointer", fontWeight: 700 };
+  const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
 
   function addProject(owner: string) {
     setState((s) => ({
@@ -1227,11 +1229,47 @@ function ProjectsTab({ state, setState }: { state: AppState; setState: SetAppSta
   function updateProjectField(id: string, field: "name" | "assignedBy" | "status" | "dueDate" | "githubRepo" | "jiraTicket" | "deliverables" | "estimatedTime" | "priority", value: string) {
     setState((s) => ({ ...s, projects: s.projects.map((p) => (p.id !== id ? p : { ...p, [field]: value })) }));
   }
+  function reorderProject(owner: string, fromId: string, toId: string) {
+    setState((s) => {
+      const mine = s.projects.filter((p) => p.owner === owner);
+      const fromIdx = mine.findIndex((p) => p.id === fromId);
+      const toIdx = mine.findIndex((p) => p.id === toId);
+      if (fromIdx === -1 || toIdx === -1 || fromIdx === toIdx) return s;
+      const reordered = [...mine];
+      const [moved] = reordered.splice(fromIdx, 1);
+      reordered.splice(toIdx, 0, moved);
+      let i = 0;
+      const projects = s.projects.map((p) => (p.owner === owner ? reordered[i++] : p));
+      return { ...s, projects };
+    });
+  }
 
   function renderProjectCard(p: AppState["projects"][number]) {
+    const isDragging = draggedId === p.id;
+    const isDragOver = dragOverId === p.id && draggedId !== p.id;
     return (
-      <div key={p.id} style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "18px 22px" }}>
+      <div
+        key={p.id}
+        onDragOver={(e) => { e.preventDefault(); if (draggedId && draggedId !== p.id) setDragOverId(p.id); }}
+        onDragLeave={() => setDragOverId((id) => (id === p.id ? null : id))}
+        onDrop={(e) => {
+          e.preventDefault();
+          if (draggedId && draggedId !== p.id) reorderProject(p.owner, draggedId, p.id);
+          setDraggedId(null);
+          setDragOverId(null);
+        }}
+        style={{ background: "white", border: `${isDragOver ? 2 : 1}px solid ${isDragOver ? MAROON : BORDER}`, borderRadius: 12, padding: "18px 22px", opacity: isDragging ? 0.4 : 1, transition: "opacity 0.15s ease-out, border-color 0.15s ease-out" }}
+      >
         <div style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 10 }}>
+          <span
+            draggable
+            onDragStart={(e) => { e.dataTransfer.effectAllowed = "move"; setDraggedId(p.id); }}
+            onDragEnd={() => { setDraggedId(null); setDragOverId(null); }}
+            title="Drag to reorder"
+            style={{ cursor: "grab", color: MUTED, fontSize: 15, flex: "none", marginTop: 2, userSelect: "none", lineHeight: 1 }}
+          >
+            ⠿
+          </span>
           <div style={{ flex: 1, fontSize: 15, fontWeight: 700, color: INK_TEXT }} {...editable(p.name, (v) => updateProjectField(p.id, "name", v))} />
           <span onClick={() => removeProject(p.id)} className="ghi-x" style={REMOVE_X}>&times;</span>
         </div>
