@@ -1,12 +1,17 @@
 import { getAdminDb } from "@/lib/firebase-admin";
 import { requireRole } from "@/lib/auth/dal";
 import { signOutAction } from "@/lib/auth/actions";
-import type { EngagementDoc } from "@/lib/auth/types";
+import { removeIntern, reactivateIntern, cancelInvite } from "./actions";
+import { InviteInternForm } from "./invite-intern-form";
+import { buildRosterRows } from "./roster";
+import type { EngagementDoc, InviteDoc, UserDoc } from "@/lib/auth/types";
 
 export default async function LeadPage() {
   const user = await requireRole("engagementLead");
 
   let engagementName = "your engagement";
+  let rosterRows: ReturnType<typeof buildRosterRows> = [];
+
   if (user.engagementId) {
     const engagementSnapshot = await getAdminDb()
       .collection("engagements")
@@ -15,6 +20,29 @@ export default async function LeadPage() {
     if (engagementSnapshot.exists) {
       engagementName = (engagementSnapshot.data() as EngagementDoc).name;
     }
+
+    const internsSnapshot = await getAdminDb()
+      .collection("users")
+      .where("role", "==", "intern")
+      .where("engagementId", "==", user.engagementId)
+      .get();
+    const interns = internsSnapshot.docs.map((doc) => ({
+      uid: doc.id,
+      ...(doc.data() as UserDoc),
+    }));
+
+    const invitesSnapshot = await getAdminDb()
+      .collection("invites")
+      .where("role", "==", "intern")
+      .where("engagementId", "==", user.engagementId)
+      .where("usedAt", "==", null)
+      .get();
+    const invites = invitesSnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...(doc.data() as InviteDoc),
+    }));
+
+    rosterRows = buildRosterRows(interns, invites);
   }
 
   return (
@@ -25,7 +53,36 @@ export default async function LeadPage() {
       </form>
 
       <h1>{engagementName}</h1>
-      <p>Intern management is coming in Sprint 1.</p>
+
+      <h2>Interns</h2>
+      <ul>
+        {rosterRows.map((row) => (
+          <li key={row.key}>
+            {row.name} ({row.email}) — {row.state}
+            {row.state === "active" && (
+              <form action={removeIntern}>
+                <input type="hidden" name="uid" value={row.uid} />
+                <button type="submit">Remove</button>
+              </form>
+            )}
+            {row.state === "removed" && (
+              <form action={reactivateIntern}>
+                <input type="hidden" name="uid" value={row.uid} />
+                <button type="submit">Reactivate</button>
+              </form>
+            )}
+            {row.state === "invited" && (
+              <form action={cancelInvite}>
+                <input type="hidden" name="inviteId" value={row.inviteId} />
+                <button type="submit">Cancel</button>
+              </form>
+            )}
+          </li>
+        ))}
+      </ul>
+
+      <h2>Invite an intern</h2>
+      <InviteInternForm />
     </main>
   );
 }
