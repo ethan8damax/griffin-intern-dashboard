@@ -263,31 +263,77 @@ git commit -m "Deny removed users at sign-in and on every protected-route reques
 **Files:**
 - Modify: `firestore.rules`
 
-- [ ] **Step 1: Extend the `invites` write rule**
+- [ ] **Step 1: Extend the `invites` write rule, and also gate every role check on `status`**
 
-In `firestore.rules`, change:
+**Note (added after Task 2 review):** Task 2 taught the app layer to deny removed
+users, but the Firestore rules still only check `role`, not `status` — so a removed
+`companyAdmin`/`engagementLead` whose Firebase Auth session is still cryptographically
+valid would still pass the rules' role check if a client ever called Firestore
+directly (nothing in the app does this today — client-side Firestore access is only
+ever used against the unrelated `dashboard/main` doc — but the rules' own stated
+purpose is to be a backstop for exactly that hypothetical, so it should actually hold).
+Since this task already touches every role check in the file, extracting small helper
+functions here also removes the copy-pasted `get(...)` calls.
+
+Replace the full contents of `firestore.rules` with:
 
 ```
-    match /invites/{inviteId} {
-      allow read, write: if request.auth != null &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "companyAdmin";
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /dashboard/{docId} {
+      allow read, write: if true;
     }
-```
 
-to:
+    // All reads/writes to the collections below normally happen server-side via
+    // the Firebase Admin SDK, which bypasses these rules entirely. The rules here
+    // are a defense-in-depth backstop against a client ever calling Firestore
+    // directly with a signed-in user's credentials.
 
-```
-    match /invites/{inviteId} {
-      allow read, write: if request.auth != null &&
-        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "companyAdmin" ||
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "engagementLead");
+    function callerDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
+
+    function isActiveCompanyAdmin() {
+      return request.auth != null &&
+        callerDoc().role == "companyAdmin" &&
+        callerDoc().status != "removed";
+    }
+
+    function isActiveEngagementLead() {
+      return request.auth != null &&
+        callerDoc().role == "engagementLead" &&
+        callerDoc().status != "removed";
+    }
+
+    match /users/{uid} {
+      allow read: if request.auth != null &&
+        (request.auth.uid == uid || isActiveCompanyAdmin());
+      allow write: if false;
+    }
+
+    match /engagements/{engagementId} {
+      allow read: if request.auth != null &&
+        (resource.data.leadUserId == request.auth.uid || isActiveCompanyAdmin());
+      allow write: if isActiveCompanyAdmin();
+    }
+
+    match /invites/{inviteId} {
+      allow read, write: if isActiveCompanyAdmin() || isActiveEngagementLead();
+    }
+  }
+}
 ```
 
-(Matches the existing rules' level of granularity — role-only, not per-engagement
-scoping inside the rule itself. These rules are defense-in-depth only, per the Sprint 0
-design doc: real writes go through the Admin SDK, which bypasses rules regardless. The
-actual per-engagement ownership check lives in the Server Actions, Task 5 below.)
+`status != "removed"` (not `status == "active"`) matches the same fail-open
+convention Task 2 used at the app layer — a doc with no `status` field at all (any
+pre-Sprint-1 data) still passes. A user's own self-read of `users/{uid}` (the
+`request.auth.uid == uid` branch) deliberately has no status check — a removed user
+can still see their own doc; only cross-user/collection access is gated. Matches the
+existing rules' level of granularity otherwise — role-only, not per-engagement scoping
+inside the rule itself. These rules are defense-in-depth only, per the Sprint 0 design
+doc: real writes go through the Admin SDK, which bypasses rules regardless. The actual
+per-engagement ownership check lives in the Server Actions, Task 5 below.
 
 - [ ] **Step 2: Deploy the updated rules**
 
@@ -638,6 +684,32 @@ Expected: build succeeds
 git add src/app/lead/actions.ts
 git commit -m "Add lead server actions: invite, remove, reactivate, cancel invite"
 ```
+
+**Note (added after review):** two gaps were found and fixed in a follow-up commit:
+`removeIntern`/`reactivateIntern` didn't check the target's `role`, so a lead could
+soft-remove another `engagementLead` sharing the same engagement (two co-leads on one
+engagement is a reachable state — nothing prevents it at invite time); and the
+"doesn't exist" vs. "wrong engagement" error messages differed, letting someone who
+already holds a `uid`/`inviteId` confirm it exists in a different engagement. Fixed by
+adding a `targetUser.role !== "intern"` check after the ownership check in both
+remove/reactivate, and by having `assertSameEngagement` take the same "not found"
+message used for the existence check, so both failure modes are indistinguishable —
+matching the collapsed-message convention `completeSignIn` already established in
+Sprint 0.
+
+**Note (added after final whole-branch review):** the same class of bug recurred in
+two spots the per-task review didn't catch, since each task was reviewed in isolation.
+`cancelInvite` had no `role` check at all — a lead could cancel a still-pending
+`engagementLead` invite for their own engagement (e.g. one Company Admin sent to bring
+on a co-lead), since `InviteDoc` carries a `role` field just like `UserDoc` does but
+this function never checked it. And `inviteIntern`'s duplicate-check query
+(`.where("email", "==", email).where("engagementId", "==", engagementId).where("usedAt", "==", null)`)
+had no `role` filter — if the same email already had an unredeemed `engagementLead`
+invite in the engagement, a lead trying to invite that email as an *intern* would
+silently find and return the lead invite's link instead, so the person would sign in
+with the wrong role. Fixed by adding `.where("role", "==", "intern")` to the duplicate
+check and an `invite.role !== "intern"` guard to `cancelInvite`, mirroring the pattern
+already used in `removeIntern`/`reactivateIntern`.
 
 ---
 

@@ -39,6 +39,7 @@ export async function inviteIntern(
     .collection("invites")
     .where("email", "==", email)
     .where("engagementId", "==", engagementId)
+    .where("role", "==", "intern")
     .where("usedAt", "==", null)
     .limit(1)
     .get();
@@ -125,6 +126,9 @@ export async function cancelInvite(formData: FormData): Promise<void> {
   }
   const invite = inviteSnapshot.data() as InviteDoc;
   assertSameEngagement(invite.engagementId, lead.engagementId ?? "", "Invite not found.");
+  if (invite.role !== "intern") {
+    throw new Error("Invite not found.");
+  }
 
   await inviteRef.delete();
   revalidatePath("/lead");
