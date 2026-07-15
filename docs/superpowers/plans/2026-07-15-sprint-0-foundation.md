@@ -1308,6 +1308,20 @@ git commit -m "Update CLAUDE.md auth shortcut note for Sprint 0 auth"
 
 ## Task 14: Full verification pass
 
+**Note (added during Task 14 — final holistic review):** a final review across
+the whole branch (not just per-task diffs) caught two more real issues, both fixed:
+
+1. `src/lib/firebase.ts`'s `export const auth = getAuth(app)` was also eager,
+   the same class of bug as Task 4/11's Admin SDK issue — `next build` prerenders
+   `/login` (a client page) once on the server, and `getAuth()` synchronously
+   validates the API key, so the build crashed whenever `NEXT_PUBLIC_FIREBASE_*`
+   was unset. Fixed the same way: a lazy `getFirebaseAuth()` accessor, called only
+   from inside `/login`'s `useEffect`/event handlers.
+2. `/admin` was missing the "list users" section the design doc specified
+   alongside the engagements list — dropped when this plan was originally written,
+   with no note explaining why. Added back: a `<h2>Users</h2>` list (name/email/role)
+   between the engagements list and the create-engagement form.
+
 **Files:** none (verification only)
 
 - [ ] **Step 1: Run the full test suite**
