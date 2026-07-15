@@ -7,10 +7,15 @@ import type { InviteDoc, UserDoc } from "@/lib/auth/types";
 
 function assertSameEngagement(
   resourceEngagementId: string | undefined,
-  leadEngagementId: string
+  leadEngagementId: string,
+  notFoundMessage: string
 ): void {
   if (resourceEngagementId !== leadEngagementId) {
-    throw new Error("You can only manage your own engagement's records.");
+    // Same message as the "doesn't exist" case above — don't let a lead
+    // distinguish "wrong engagement" from "no such record" for an id they
+    // already hold, matching the collapsed-message convention in
+    // src/lib/auth/actions.ts's completeSignIn.
+    throw new Error(notFoundMessage);
   }
 }
 
@@ -73,7 +78,10 @@ export async function removeIntern(formData: FormData): Promise<void> {
     throw new Error("Intern not found.");
   }
   const targetUser = userSnapshot.data() as UserDoc;
-  assertSameEngagement(targetUser.engagementId, lead.engagementId ?? "");
+  assertSameEngagement(targetUser.engagementId, lead.engagementId ?? "", "Intern not found.");
+  if (targetUser.role !== "intern") {
+    throw new Error("Intern not found.");
+  }
 
   await userRef.update({ status: "removed" });
   revalidatePath("/lead");
@@ -93,7 +101,10 @@ export async function reactivateIntern(formData: FormData): Promise<void> {
     throw new Error("Intern not found.");
   }
   const targetUser = userSnapshot.data() as UserDoc;
-  assertSameEngagement(targetUser.engagementId, lead.engagementId ?? "");
+  assertSameEngagement(targetUser.engagementId, lead.engagementId ?? "", "Intern not found.");
+  if (targetUser.role !== "intern") {
+    throw new Error("Intern not found.");
+  }
 
   await userRef.update({ status: "active" });
   revalidatePath("/lead");
@@ -113,7 +124,7 @@ export async function cancelInvite(formData: FormData): Promise<void> {
     throw new Error("Invite not found.");
   }
   const invite = inviteSnapshot.data() as InviteDoc;
-  assertSameEngagement(invite.engagementId, lead.engagementId ?? "");
+  assertSameEngagement(invite.engagementId, lead.engagementId ?? "", "Invite not found.");
 
   await inviteRef.delete();
   revalidatePath("/lead");
