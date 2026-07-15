@@ -1,4 +1,5 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
+import { getAuth, type Auth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
@@ -12,3 +13,16 @@ const firebaseConfig = {
 
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 export const db = getFirestore(app);
+
+// Lazy, not eager: getAuth() validates the API key format synchronously and
+// throws if it's missing/malformed. Next.js prerenders "use client" pages
+// once on the server at build time, which would otherwise crash `next build`
+// whenever NEXT_PUBLIC_FIREBASE_* env vars are unset — same failure mode
+// already fixed for the Admin SDK in src/lib/firebase-admin.ts.
+let authInstance: Auth | undefined;
+export function getFirebaseAuth(): Auth {
+  if (!authInstance) {
+    authInstance = getAuth(app);
+  }
+  return authInstance;
+}
