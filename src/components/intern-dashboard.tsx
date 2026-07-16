@@ -58,6 +58,7 @@ const PRIMARY_BTN: CSSProperties = { padding: "10px 18px", background: MAROON, c
 const REMOVE_X: CSSProperties = { cursor: "pointer", color: "oklch(0.65 0.015 50)", fontSize: 15, borderRadius: 5, padding: "0 3px" };
 const DASHED_ADD: CSSProperties = { fontSize: 13, fontWeight: 600, color: MAROON, cursor: "pointer", padding: 10, border: "1px dashed oklch(0.72 0.04 20)", borderRadius: 10, textAlign: "center", background: "white" };
 const PILL: CSSProperties = { borderRadius: 999 };
+const PILL_SELECT: CSSProperties = { fontSize: 12, padding: "5px 10px", borderRadius: 999, border: "1px solid oklch(0.88 0.012 55)", background: "white", cursor: "pointer" };
 
 function formatWeekLabel(weekOf: string): string {
   const start = new Date(weekOf + "T00:00:00");
@@ -131,6 +132,37 @@ function ProgressBar({ percent, color }: { percent: number; color: string }) {
 
 function escapeHtml(str: string | null | undefined): string {
   return String(str ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+const STATUS_ZERO: Record<Status, number> = { green: 0, yellow: 0, red: 0, gray: 0 };
+function countByStatus<T extends { status: Status }>(items: T[]): Record<Status, number> {
+  const counts = { ...STATUS_ZERO };
+  items.forEach((item) => { counts[item.status] += 1; });
+  return counts;
+}
+
+function TabDescription({ tabKey, state, setState }: { tabKey: TabId; state: AppState; setState: SetAppState }) {
+  return (
+    <div
+      style={{ fontSize: 12.5, color: MUTED, background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "14px 18px" }}
+      {...editable(state.tabDescriptions[tabKey] ?? "", (v) => setState((s) => ({ ...s, tabDescriptions: { ...s.tabDescriptions, [tabKey]: v } })))}
+    />
+  );
+}
+
+function submitReview(setState: SetAppState, reviewId: string, extra: Partial<AppState> = {}) {
+  setState((s) => ({
+    ...s,
+    ...extra,
+    reviews: s.reviews.map((r) => (r.id !== reviewId ? r : { ...r, status: "submitted", submittedDate: new Date().toISOString().slice(0, 10) })),
+  }));
+}
+
+function updateReviewResponse(setState: SetAppState, reviewId: string, qid: string, value: number | string | null) {
+  setState((s) => ({
+    ...s,
+    reviews: s.reviews.map((r) => (r.id !== reviewId ? r : { ...r, questions: r.questions.map((q) => (q.id !== qid ? q : { ...q, response: value })) })),
+  }));
 }
 
 function openPrintWindow(bodyHtml: string, title: string) {
@@ -252,20 +284,6 @@ export default function InternDashboard() {
   const reviewToken = searchParams.get("review");
   const standaloneReview = reviewToken ? state.reviews.find((r) => r.token === reviewToken) ?? null : null;
 
-  function submitReview(reviewId: string) {
-    setState((s) => ({
-      ...s,
-      reviews: s.reviews.map((r) => (r.id !== reviewId ? r : { ...r, status: "submitted", submittedDate: new Date().toISOString().slice(0, 10) })),
-    }));
-  }
-
-  function updateReviewResponse(reviewId: string, qid: string, value: number | string | null) {
-    setState((s) => ({
-      ...s,
-      reviews: s.reviews.map((r) => (r.id !== reviewId ? r : { ...r, questions: r.questions.map((q) => (q.id !== qid ? q : { ...q, response: value })) })),
-    }));
-  }
-
   if (!loaded) {
     // Block interaction until the initial Firestore fetch resolves.
     // Rendering the seed/stale data as an editable form here would let a
@@ -304,7 +322,7 @@ export default function InternDashboard() {
                       {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
                         <div
                           key={n}
-                          onClick={() => updateReviewResponse(standaloneReview.id, q.id, n)}
+                          onClick={() => updateReviewResponse(setState, standaloneReview.id, q.id, n)}
                           style={{ width: 30, height: 30, borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12.5, fontWeight: 700, cursor: "pointer", border: `1px solid ${q.response === n ? MAROON : "oklch(0.88 0.012 55)"}`, background: q.response === n ? MAROON : "white", color: q.response === n ? "white" : "oklch(0.4 0.015 50)" }}
                         >
                           {n}
@@ -314,14 +332,14 @@ export default function InternDashboard() {
                   ) : (
                     <textarea
                       value={(q.response as string) ?? ""}
-                      onChange={(e) => updateReviewResponse(standaloneReview.id, q.id, e.target.value)}
+                      onChange={(e) => updateReviewResponse(setState, standaloneReview.id, q.id, e.target.value)}
                       placeholder="Write your answer…"
                       style={{ width: "100%", minHeight: 70, padding: "10px 12px", border: "1px solid oklch(0.88 0.012 55)", borderRadius: 8, fontSize: 13, fontFamily: "inherit", resize: "vertical" }}
                     />
                   )}
                 </div>
               ))}
-              <div onClick={() => submitReview(standaloneReview.id)} className="ghi-btn-primary" style={{ padding: 12, background: MAROON, color: "white", borderRadius: 9, fontSize: 14, fontWeight: 700, cursor: "pointer", textAlign: "center" }}>
+              <div onClick={() => submitReview(setState, standaloneReview.id)} className="ghi-btn-primary" style={{ padding: 12, background: MAROON, color: "white", borderRadius: 9, fontSize: 14, fontWeight: 700, cursor: "pointer", textAlign: "center" }}>
                 Submit review
               </div>
             </>
@@ -545,11 +563,9 @@ function DashboardTab({ state, setState, activePeriod }: { state: AppState; setS
 
   const order: Status[] = ["green", "yellow", "red", "gray"];
 
-  const scorecardCounts: Record<Status, number> = { green: 0, yellow: 0, red: 0, gray: 0 };
-  activePeriod.scorecard.forEach((r) => { scorecardCounts[r.status] += 1; });
+  const scorecardCounts = countByStatus(activePeriod.scorecard);
 
-  const goalCounts: Record<Status, number> = { green: 0, yellow: 0, red: 0, gray: 0 };
-  state.okrs.forEach((o) => { goalCounts[o.status] += 1; });
+  const goalCounts = countByStatus(state.okrs);
 
   const activePriorityWeek = state.priorityWeeks.find((w) => w.id === state.activePriorityWeekId) ?? state.priorityWeeks[state.priorityWeeks.length - 1];
   const priorityCounts: Record<PriorityStatus, number> = { Done: 0, "In Progress": 0, "Not Started": 0, Blocked: 0 };
@@ -559,10 +575,7 @@ function DashboardTab({ state, setState, activePeriod }: { state: AppState; setS
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-      <div
-        style={{ fontSize: 12.5, color: MUTED, background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "14px 18px" }}
-        {...editable(state.tabDescriptions.dashboard ?? "", (v) => setState((s) => ({ ...s, tabDescriptions: { ...s.tabDescriptions, dashboard: v } })))}
-      />
+      <TabDescription tabKey="dashboard" state={state} setState={setState} />
 
       <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
         <div style={{ ...CARD, flex: 1, minWidth: 240 }}>
@@ -653,8 +666,7 @@ function ProfileTab({ state, setState }: { state: AppState; setState: SetAppStat
   const order: Status[] = ["green", "yellow", "red", "gray"];
 
   const individualGoals = state.okrs.filter((o) => o.owner === "individual" && o.assignee === person);
-  const goalCounts: Record<Status, number> = { green: 0, yellow: 0, red: 0, gray: 0 };
-  individualGoals.forEach((o) => { goalCounts[o.status] += 1; });
+  const goalCounts = countByStatus(individualGoals);
 
   const activePriorityWeek = state.priorityWeeks.find((w) => w.id === state.activePriorityWeekId) ?? state.priorityWeeks[state.priorityWeeks.length - 1];
   const myPriorities = activePriorityWeek ? activePriorityWeek.priorities.filter((p) => p.owner === person) : [];
@@ -869,8 +881,7 @@ function ScorecardTab({ state, setState, activePeriod, onExportPeriod }: { state
     { label: "Client feedback", value: feedback?.actual || "Pending", target: feedback?.target || "—", color: STATUS_META[feedback?.status ?? "gray"].color, series: metricSeries("Lead / client feedback") },
   ];
 
-  const counts: Record<Status, number> = { green: 0, yellow: 0, red: 0, gray: 0 };
-  activePeriod.scorecard.forEach((r) => { counts[r.status] += 1; });
+  const counts = countByStatus(activePeriod.scorecard);
   const statusTotal = activePeriod.scorecard.length;
   const order: Status[] = ["green", "yellow", "red", "gray"];
   let acc = 0;
@@ -1142,7 +1153,7 @@ function GoalsTab({ state, setState }: { state: AppState; setState: SetAppState 
   const statusOptions = (Object.keys(STATUS_META) as Status[]).map((k) => ({ value: k, label: `${STATUS_META[k].emoji} ${STATUS_META[k].label}` }));
   const teamGoals = state.okrs.filter((o) => o.owner === "team");
   const individualGoals = state.okrs.filter((o) => o.owner === "individual");
-  const pillSelect: CSSProperties = { fontSize: 12, padding: "5px 10px", borderRadius: 999, border: "1px solid oklch(0.88 0.012 55)", background: "white", cursor: "pointer" };
+  const pillSelect = PILL_SELECT;
 
   function renderGoalCard(obj: AppState["okrs"][number], index: number) {
     return (
@@ -1191,10 +1202,7 @@ function GoalsTab({ state, setState }: { state: AppState; setState: SetAppState 
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <div
-        style={{ fontSize: 12.5, color: MUTED, background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "14px 18px" }}
-        {...editable(state.tabDescriptions.okrs ?? "", (v) => setState((s) => ({ ...s, tabDescriptions: { ...s.tabDescriptions, okrs: v } })))}
-      />
+      <TabDescription tabKey="okrs" state={state} setState={setState} />
 
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         <div style={SECTION_TITLE}>Team Goals</div>
@@ -1319,10 +1327,7 @@ function ProjectsTab({ state, setState }: { state: AppState; setState: SetAppSta
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-      <div
-        style={{ fontSize: 12.5, color: MUTED, background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "14px 18px" }}
-        {...editable(state.tabDescriptions.projects ?? "", (v) => setState((s) => ({ ...s, tabDescriptions: { ...s.tabDescriptions, projects: v } })))}
-      />
+      <TabDescription tabKey="projects" state={state} setState={setState} />
 
       {TEAM_MEMBERS.map((name) => {
         const myProjects = state.projects.filter((p) => p.owner === name);
@@ -1370,10 +1375,7 @@ function WorkloadTab({ state, setState }: { state: AppState; setState: SetAppSta
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-      <div
-        style={{ fontSize: 12.5, color: MUTED, background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "14px 18px" }}
-        {...editable(state.tabDescriptions.workload ?? "", (v) => setState((s) => ({ ...s, tabDescriptions: { ...s.tabDescriptions, workload: v } })))}
-      />
+      <TabDescription tabKey="workload" state={state} setState={setState} />
 
       <div style={{ display: "flex", gap: 8 }}>
         {TEAM_MEMBERS.map((name) => {
@@ -1504,7 +1506,7 @@ function PrioritiesTab({ state, setState }: { state: AppState; setState: SetAppS
   const activeWeek = state.priorityWeeks.find((w) => w.id === state.activePriorityWeekId) ?? state.priorityWeeks[state.priorityWeeks.length - 1];
   const priorityOwners = [...TEAM_MEMBERS, "Team"];
   const priorityStatusOptions: PriorityStatus[] = ["Not Started", "In Progress", "Done", "Blocked"];
-  const pillSelect: CSSProperties = { fontSize: 12, padding: "5px 10px", borderRadius: 999, border: "1px solid oklch(0.88 0.012 55)", background: "white", cursor: "pointer" };
+  const pillSelect = PILL_SELECT;
 
   function addWeek() {
     setState((s) => {
@@ -1538,10 +1540,7 @@ function PrioritiesTab({ state, setState }: { state: AppState; setState: SetAppS
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-      <div
-        style={{ fontSize: 12.5, color: MUTED, background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "14px 18px" }}
-        {...editable(state.tabDescriptions.priorities ?? "", (v) => setState((s) => ({ ...s, tabDescriptions: { ...s.tabDescriptions, priorities: v } })))}
-      />
+      <TabDescription tabKey="priorities" state={state} setState={setState} />
       <WeekPicker weeks={state.priorityWeeks} activeWeekId={activeWeek.id} onSelect={(id) => setState((s) => ({ ...s, activePriorityWeekId: id }))} onAdd={addWeek} onRemove={removeWeek} />
 
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
@@ -1620,10 +1619,7 @@ function ReflectionsTab({ state, setState }: { state: AppState; setState: SetApp
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-      <div
-        style={{ fontSize: 12.5, color: MUTED, background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "14px 18px" }}
-        {...editable(state.tabDescriptions.reflections ?? "", (v) => setState((s) => ({ ...s, tabDescriptions: { ...s.tabDescriptions, reflections: v } })))}
-      />
+      <TabDescription tabKey="reflections" state={state} setState={setState} />
       <WeekPicker weeks={state.reflectionWeeks} activeWeekId={activeWeek.id} onSelect={(id) => setState((s) => ({ ...s, activeReflectionWeekId: id }))} onAdd={addWeek} onRemove={removeWeek} />
 
       {categories.map((cat) => {
@@ -1721,10 +1717,7 @@ function ReferenceTab({ state, setState }: { state: AppState; setState: SetAppSt
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <div
-        style={{ fontSize: 12.5, color: MUTED, background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "14px 18px" }}
-        {...editable(state.tabDescriptions.reference ?? "", (v) => setState((s) => ({ ...s, tabDescriptions: { ...s.tabDescriptions, reference: v } })))}
-      />
+      <TabDescription tabKey="reference" state={state} setState={setState} />
 
       {state.kpiDefs.map((cat) => (
         <div key={cat.id} style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "18px 22px" }}>
@@ -1871,12 +1864,6 @@ function ReviewQuestionList({ questions, onRespond }: { questions: Review["quest
 function FeedbackTab({ state, setState }: { state: AppState; setState: SetAppState }) {
   const activeReview = state.activeReviewId ? state.reviews.find((r) => r.id === state.activeReviewId) ?? null : null;
 
-  function updateReviewResponse(reviewId: string, qid: string, value: number | string) {
-    setState((s) => ({ ...s, reviews: s.reviews.map((r) => (r.id !== reviewId ? r : { ...r, questions: r.questions.map((q) => (q.id !== qid ? q : { ...q, response: value })) })) }));
-  }
-  function submitReview(reviewId: string) {
-    setState((s) => ({ ...s, activeReviewId: null, reviews: s.reviews.map((r) => (r.id !== reviewId ? r : { ...r, status: "submitted", submittedDate: new Date().toISOString().slice(0, 10) })) }));
-  }
   function removeReview(id: string) {
     if (!window.confirm("Delete this review request and any collected response? This cannot be undone.")) return;
     setState((s) => ({ ...s, reviews: s.reviews.filter((r) => r.id !== id) }));
@@ -1934,8 +1921,8 @@ function FeedbackTab({ state, setState }: { state: AppState; setState: SetAppSta
             </div>
             <div onClick={() => setState((s) => ({ ...s, activeReviewId: null }))} className="ghi-btn-ghost" style={{ fontSize: 12.5, fontWeight: 600, color: "oklch(0.45 0.015 50)", cursor: "pointer", borderRadius: 6, padding: "2px 6px" }}>Close</div>
           </div>
-          <ReviewQuestionList questions={activeReview.questions} onRespond={(qid, value) => updateReviewResponse(activeReview.id, qid, value)} />
-          <div onClick={() => submitReview(activeReview.id)} className="ghi-btn-primary" style={{ padding: 10, background: MAROON, color: "white", borderRadius: 8, fontSize: 13.5, fontWeight: 700, cursor: "pointer", textAlign: "center" }}>Save response &amp; mark submitted</div>
+          <ReviewQuestionList questions={activeReview.questions} onRespond={(qid, value) => updateReviewResponse(setState, activeReview.id, qid, value)} />
+          <div onClick={() => submitReview(setState, activeReview.id, { activeReviewId: null })} className="ghi-btn-primary" style={{ padding: 10, background: MAROON, color: "white", borderRadius: 8, fontSize: 13.5, fontWeight: 700, cursor: "pointer", textAlign: "center" }}>Save response &amp; mark submitted</div>
         </div>
       )}
 
@@ -2018,10 +2005,7 @@ function ReviewsTab({ state, setState }: { state: AppState; setState: SetAppStat
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-      <div
-        style={{ fontSize: 12.5, color: MUTED, background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "14px 18px" }}
-        {...editable(state.tabDescriptions.reviews ?? "", (v) => setState((s) => ({ ...s, tabDescriptions: { ...s.tabDescriptions, reviews: v } })))}
-      />
+      <TabDescription tabKey="reviews" state={state} setState={setState} />
 
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         <div style={{ fontSize: 13, fontWeight: 700, color: "oklch(0.35 0.015 50)" }}>All review requests</div>
@@ -2066,10 +2050,7 @@ function ReviewsTab({ state, setState }: { state: AppState; setState: SetAppStat
 function SavedTab({ state, setState }: { state: AppState; setState: SetAppState }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <div
-        style={{ fontSize: 12.5, color: MUTED, background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "14px 18px" }}
-        {...editable(state.tabDescriptions.saved ?? "", (v) => setState((s) => ({ ...s, tabDescriptions: { ...s.tabDescriptions, saved: v } })))}
-      />
+      <TabDescription tabKey="saved" state={state} setState={setState} />
       <div style={{ ...CARD, textAlign: "center", padding: "48px 22px", color: MUTED }}>
         <div style={{ fontSize: 28, marginBottom: 10 }}>⭐</div>
         <div style={{ fontSize: 14, fontWeight: 700, color: INK_TEXT, marginBottom: 4 }}>Nothing saved yet</div>

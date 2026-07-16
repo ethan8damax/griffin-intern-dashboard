@@ -13,35 +13,24 @@ export function InviteLeadForm({
 }: {
   engagements: EngagementOption[];
 }) {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [engagementId, setEngagementId] = useState(engagements[0]?.id ?? "");
   const [link, setLink] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  // engagementId can go stale (e.g. "" from mounting with zero engagements)
-  // once the parent's `engagements` prop refreshes without remounting this
-  // component (revalidatePath triggers a refresh, not a remount). Derive the
-  // effective selection at render time instead of syncing via an effect.
-  const selectedEngagementId = engagementId || engagements[0]?.id || "";
-
-  async function handleSubmit(formEvent: FormEvent) {
+  async function handleSubmit(formEvent: FormEvent<HTMLFormElement>) {
     formEvent.preventDefault();
     setError("");
     setLink(null);
     setSubmitting(true);
 
-    const formData = new FormData();
-    formData.set("name", name);
-    formData.set("email", email);
-    formData.set("engagementId", selectedEngagementId);
+    const form = formEvent.currentTarget;
+    const formData = new FormData(form);
 
     try {
       const result = await createInvite(formData);
       setLink(result.link);
-      setName("");
-      setEmail("");
+      (form.elements.namedItem("name") as HTMLInputElement).value = "";
+      (form.elements.namedItem("email") as HTMLInputElement).value = "";
     } catch (submitError) {
       setError((submitError as Error).message);
     } finally {
@@ -56,27 +45,16 @@ export function InviteLeadForm({
   return (
     <form onSubmit={handleSubmit}>
       <label htmlFor="lead-name">Name</label>
-      <input
-        id="lead-name"
-        value={name}
-        onChange={(inputEvent) => setName(inputEvent.target.value)}
-        required
-      />
+      <input id="lead-name" name="name" required />
 
       <label htmlFor="lead-email">Email</label>
-      <input
-        id="lead-email"
-        type="email"
-        value={email}
-        onChange={(inputEvent) => setEmail(inputEvent.target.value)}
-        required
-      />
+      <input id="lead-email" name="email" type="email" required />
 
       <label htmlFor="lead-engagement">Engagement</label>
       <select
         id="lead-engagement"
-        value={selectedEngagementId}
-        onChange={(inputEvent) => setEngagementId(inputEvent.target.value)}
+        name="engagementId"
+        defaultValue={engagements[0]?.id ?? ""}
         required
       >
         {engagements.map((engagement) => (

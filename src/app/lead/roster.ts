@@ -1,8 +1,8 @@
 import type { InviteDoc, UserDoc } from "@/lib/auth/types";
 
-export type RosterRowState = "invited" | "active" | "removed";
+type RosterRowState = "invited" | "active" | "removed";
 
-export interface RosterRow {
+interface RosterRow {
   key: string;
   name: string;
   email: string;
