@@ -50,11 +50,16 @@ machine nobody asked for.
 
 ## Seeding
 
-Three `kind: "standard"` milestones are created in `src/lib/auth/reconcile.ts`'s
-`createFromInvite` branch, the same moment the `UserDoc` itself is created (i.e., first
-sign-in via an invite link, not when the lead sends the invite — matches "when they're
-added" in the roadmap literally, since a person isn't really "added" until they have an
-account).
+Three `kind: "standard"` milestones are created the same moment the `UserDoc` itself is
+created (i.e., first sign-in via an invite link, not when the lead sends the invite —
+matches "when they're added" in the roadmap literally, since a person isn't really
+"added" until they have an account). `resolveSignIn` (`src/lib/auth/reconcile.ts`) stays
+a pure function with no new branching, consistent with Sprint 1 — the actual write
+happens in `completeSignIn` (`src/lib/auth/actions.ts`), in the existing
+`result.kind === "createFromInvite"` branch, right after `userRef.set(result.user)`, the
+same place that branch already does its other side effects (marking the invite used,
+updating `leadUserId`). The milestone shape itself is a pure helper so it stays
+testable:
 
 There's no internship start/end date anywhere in the current model (the parent design
 doc's `engagements/{id}/interns/{internId}` subcollection with start/end dates was never
@@ -66,19 +71,20 @@ default duration:
   `status: "upcoming"` — the lead fills in real dates once they know the internship's
   actual length.
 
-The seeding logic is a pure function, unit-tested the same way Sprint 1 tested
-`buildRosterRows`:
-
 ```ts
 // src/lib/auth/timeline-seed.ts
-export function standardMilestones(createdAt: number): Omit<MilestoneDoc, "createdAt">[] {
+export function standardMilestones(createdAt: number): MilestoneDoc[] {
   return [
-    { title: "Kickoff", date: createdAt, status: "upcoming", kind: "standard" },
-    { title: "Mid-point check-in", date: null, status: "upcoming", kind: "standard" },
-    { title: "Final review", date: null, status: "upcoming", kind: "standard" },
+    { title: "Kickoff", date: createdAt, status: "upcoming", kind: "standard", createdAt },
+    { title: "Mid-point check-in", date: null, status: "upcoming", kind: "standard", createdAt },
+    { title: "Final review", date: null, status: "upcoming", kind: "standard", createdAt },
   ];
 }
 ```
+
+Unit-tested the same way Sprint 1 tested `buildRosterRows`, and called from
+`completeSignIn` only when `result.user.role === "intern"` (leads and admins don't get
+a timeline).
 
 ## Access control and routes
 
