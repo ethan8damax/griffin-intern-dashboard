@@ -50,7 +50,7 @@ export async function addMilestone(formData: FormData): Promise<void> {
     status: "upcoming",
     kind: "custom",
     createdAt: Date.now(),
-    notes: notes || undefined,
+    notes: notes || null,
   };
   await getAdminDb()
     .collection("users")
@@ -81,7 +81,7 @@ export async function updateMilestone(formData: FormData): Promise<void> {
     .doc(uid)
     .collection("timeline")
     .doc(milestoneId)
-    .update({ title, date, status, notes: notes || undefined });
+    .update({ title, date, status, notes: notes || null });
   revalidatePath(`/lead/interns/${uid}`);
 }
 

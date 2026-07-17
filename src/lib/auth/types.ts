@@ -31,6 +31,6 @@ export interface MilestoneDoc {
   date: number | null; // epoch ms; null = not yet dated ("TBD")
   status: "upcoming" | "complete";
   kind: "standard" | "custom";
-  notes?: string;
+  notes?: string | null;
   createdAt: number;
 }
