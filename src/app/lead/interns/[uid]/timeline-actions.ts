@@ -26,7 +26,18 @@ async function assertOwnedIntern(
 
 function parseDateInput(dateInput: string): number | null {
   if (!dateInput) return null;
-  const parsed = new Date(dateInput).getTime();
+  // `new Date("YYYY-MM-DD")` parses as UTC midnight per the ECMA-262 spec, which
+  // silently shifts a day earlier once rendered back in a timezone behind UTC.
+  // This value is a plain calendar date with no time-of-day meaning (matches
+  // Kickoff's Date.now()-based seeding, which is "today" in local time) — parse
+  // the components as local midnight instead so it round-trips consistently
+  // through dateInputValue()/formatDate() in src/components/timeline.tsx.
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateInput);
+  if (!match) {
+    throw new Error("Invalid date.");
+  }
+  const [, year, month, day] = match;
+  const parsed = new Date(Number(year), Number(month) - 1, Number(day)).getTime();
   if (Number.isNaN(parsed)) {
     throw new Error("Invalid date.");
   }

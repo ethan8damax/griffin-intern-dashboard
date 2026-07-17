@@ -26,7 +26,15 @@ function formatDate(date: number | null): string {
 }
 
 function dateInputValue(date: number | null): string {
-  return date === null ? "" : new Date(date).toISOString().slice(0, 10);
+  if (date === null) return "";
+  // Local calendar-date components, not toISOString() (UTC) — must match
+  // parseDateInput's local-midnight parsing in timeline-actions.ts so a date
+  // round-trips through an edit instead of drifting a day in timezones behind UTC.
+  const d = new Date(date);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 function dotColor(milestone: TimelineMilestone): string {
