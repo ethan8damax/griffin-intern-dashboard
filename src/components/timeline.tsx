@@ -69,7 +69,8 @@ export function Timeline({
                 <button
                   type="button"
                   onClick={() => setExpandedId(isExpanded ? null : milestone.id)}
-                  aria-label={`${milestone.title}, ${milestone.status}`}
+                  aria-label={`${milestone.title}, ${milestone.status}, ${milestone.kind}`}
+                  aria-expanded={isExpanded}
                   style={{
                     width: 14,
                     height: 14,
