@@ -10,6 +10,7 @@ export interface TimelineMilestone {
   status: "upcoming" | "complete";
   kind: "standard" | "custom";
   notes?: string | null;
+  createdAt: number;
 }
 
 interface TimelineProps {
@@ -52,8 +53,11 @@ export function Timeline({
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
 
+  // Firestore reads here have no orderBy, so milestones tied on date (e.g. the two
+  // seeded "TBD" ones) would otherwise render in whatever order .get() happens to
+  // return — break the tie with createdAt so seeding order is always preserved.
   const sorted = [...milestones].sort(
-    (a, b) => (a.date ?? Infinity) - (b.date ?? Infinity)
+    (a, b) => (a.date ?? Infinity) - (b.date ?? Infinity) || a.createdAt - b.createdAt
   );
 
   return (
