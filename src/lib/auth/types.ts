@@ -25,3 +25,12 @@ export interface InviteDoc {
   createdAt: number;
   usedAt: number | null;
 }
+
+export interface MilestoneDoc {
+  title: string;
+  date: number | null; // epoch ms; null = not yet dated ("TBD")
+  status: "upcoming" | "complete";
+  kind: "standard" | "custom";
+  notes?: string;
+  createdAt: number;
+}
