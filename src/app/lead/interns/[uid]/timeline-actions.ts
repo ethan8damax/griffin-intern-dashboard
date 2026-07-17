@@ -36,12 +36,22 @@ function parseDateInput(dateInput: string): number | null {
   if (!match) {
     throw new Error("Invalid date.");
   }
-  const [, year, month, day] = match;
-  const parsed = new Date(Number(year), Number(month) - 1, Number(day)).getTime();
-  if (Number.isNaN(parsed)) {
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const parsedDate = new Date(year, month - 1, day);
+  // The multi-arg Date constructor never returns Invalid Date for finite
+  // numbers — it rolls an out-of-range day/month over into a different,
+  // wrong-but-valid date instead (e.g. month 13 → next January). Comparing
+  // its own getters back against the input catches that silent overflow.
+  const roundTrips =
+    parsedDate.getFullYear() === year &&
+    parsedDate.getMonth() === month - 1 &&
+    parsedDate.getDate() === day;
+  if (!roundTrips) {
     throw new Error("Invalid date.");
   }
-  return parsed;
+  return parsedDate.getTime();
 }
 
 export async function addMilestone(formData: FormData): Promise<void> {
