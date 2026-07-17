@@ -30,6 +30,12 @@ service cloud.firestore {
       allow read: if request.auth != null &&
         (request.auth.uid == uid || isActiveCompanyAdmin());
       allow write: if false;
+
+      match /timeline/{milestoneId} {
+        allow read: if request.auth != null &&
+          (request.auth.uid == uid || isActiveCompanyAdmin() || isActiveEngagementLead());
+        allow write: if isActiveCompanyAdmin() || isActiveEngagementLead();
+      }
     }
 
     match /engagements/{engagementId} {
