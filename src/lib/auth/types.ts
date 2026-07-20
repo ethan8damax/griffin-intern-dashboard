@@ -87,6 +87,16 @@ export interface ProjectDoc {
   createdAt: number;
 }
 
+// Single source of truth for ProjectDoc["status"]'s valid values, so lead/intern
+// Server Actions validate against one array instead of two hand-kept copies.
+// See GOAL_STATUSES above for why this is typed readonly string[].
+const PROJECT_STATUS_VALUES = ["Not Started", "In Progress", "Complete", "Blocked"] satisfies ProjectDoc["status"][];
+export const PROJECT_STATUSES: readonly string[] = PROJECT_STATUS_VALUES;
+
+// Single source of truth for ProjectDoc["priority"]'s valid values.
+const PROJECT_PRIORITY_VALUES = ["Low", "Medium", "High"] satisfies ProjectDoc["priority"][];
+export const PROJECT_PRIORITIES: readonly string[] = PROJECT_PRIORITY_VALUES;
+
 export interface ProfileDoc {
   role: string;
   manager: string;
