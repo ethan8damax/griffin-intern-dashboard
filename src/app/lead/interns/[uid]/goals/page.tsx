@@ -60,7 +60,7 @@ export default async function InternGoalsPage({
               </label>
               <label>
                 Target date
-                <input name="targetDate" defaultValue={goal.targetDate} />
+                <input type="date" name="targetDate" defaultValue={goal.targetDate} />
               </label>
               <label>
                 Progress
@@ -99,7 +99,7 @@ export default async function InternGoalsPage({
         </label>
         <label>
           Target date
-          <input name="targetDate" />
+          <input type="date" name="targetDate" />
         </label>
         <label>
           Key results (one per line)
