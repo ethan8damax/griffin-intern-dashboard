@@ -60,10 +60,13 @@ export default async function LeadPage() {
           <li key={row.key}>
             {row.name} ({row.email}) — {row.state}
             {row.state === "active" && (
-              <form action={removeIntern}>
-                <input type="hidden" name="uid" value={row.uid} />
-                <button type="submit">Remove</button>
-              </form>
+              <>
+                <a href={`/lead/interns/${row.uid}`}>Timeline</a>
+                <form action={removeIntern}>
+                  <input type="hidden" name="uid" value={row.uid} />
+                  <button type="submit">Remove</button>
+                </form>
+              </>
             )}
             {row.state === "removed" && (
               <form action={reactivateIntern}>

@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { getAdminAuth, getAdminDb } from "@/lib/firebase-admin";
 import { createSession, clearSession } from "@/lib/auth/session";
 import { resolveSignIn } from "@/lib/auth/reconcile";
+import { standardMilestones } from "@/lib/auth/timeline-seed";
 import type { InviteDoc, UserDoc, UserRole } from "@/lib/auth/types";
 
 function allowedAdminEmails(): string[] {
@@ -77,6 +78,14 @@ export async function completeSignIn(idToken: string): Promise<void> {
         .collection("engagements")
         .doc(result.user.engagementId)
         .update({ leadUserId: uid });
+    }
+
+    if (result.user.role === "intern") {
+      const batch = adminDb.batch();
+      for (const milestone of standardMilestones(result.user.createdAt)) {
+        batch.set(userRef.collection("timeline").doc(), milestone);
+      }
+      await batch.commit();
     }
   } else if (result.kind === "createFromAdminAllowlist") {
     await userRef.set(result.user);
