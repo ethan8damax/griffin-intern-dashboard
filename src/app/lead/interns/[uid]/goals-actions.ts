@@ -5,9 +5,7 @@ import { revalidatePath } from "next/cache";
 import { getAdminDb } from "@/lib/firebase-admin";
 import { requireRole } from "@/lib/auth/dal";
 import { assertOwnedIntern } from "@/lib/auth/ownership";
-import type { GoalDoc } from "@/lib/auth/types";
-
-const VALID_STATUSES = ["green", "yellow", "red", "gray"];
+import { GOAL_STATUSES, type GoalDoc } from "@/lib/auth/types";
 
 function parseKrs(raw: string): { id: string; text: string }[] {
   return raw
@@ -60,7 +58,7 @@ export async function updateGoal(formData: FormData): Promise<void> {
   if (!uid || !goalId || !objective) {
     throw new Error("Missing intern id, goal id, or objective.");
   }
-  if (!VALID_STATUSES.includes(status)) {
+  if (!GOAL_STATUSES.includes(status)) {
     throw new Error("Invalid status.");
   }
   await assertOwnedIntern(uid, lead.engagementId ?? "", "Intern not found.");

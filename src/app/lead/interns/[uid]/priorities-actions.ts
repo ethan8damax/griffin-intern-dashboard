@@ -4,9 +4,7 @@ import { revalidatePath } from "next/cache";
 import { getAdminDb } from "@/lib/firebase-admin";
 import { requireRole } from "@/lib/auth/dal";
 import { assertOwnedIntern } from "@/lib/auth/ownership";
-import type { PriorityDoc } from "@/lib/auth/types";
-
-const VALID_STATUSES = ["Done", "In Progress", "Not Started", "Blocked"];
+import { PRIORITY_STATUSES, type PriorityDoc } from "@/lib/auth/types";
 
 export async function addPriority(formData: FormData): Promise<void> {
   const lead = await requireRole("engagementLead");
@@ -40,7 +38,7 @@ export async function updatePriority(formData: FormData): Promise<void> {
   if (!uid || !priorityId || !text) {
     throw new Error("Missing intern id, priority id, or text.");
   }
-  if (!VALID_STATUSES.includes(status)) {
+  if (!PRIORITY_STATUSES.includes(status)) {
     throw new Error("Invalid status.");
   }
   await assertOwnedIntern(uid, lead.engagementId ?? "", "Intern not found.");

@@ -44,6 +44,14 @@ export interface GoalDoc {
   createdAt: number;
 }
 
+// Single source of truth for GoalDoc["status"]'s valid values, so lead/intern
+// Server Actions validate against one array instead of two hand-kept copies.
+// Typed as readonly string[] (not the literal union) so callers can pass a
+// plain FormData string straight to .includes() without a cast; the
+// `satisfies` check below still catches drift from GoalDoc at compile time.
+const GOAL_STATUS_VALUES = ["green", "yellow", "red", "gray"] satisfies GoalDoc["status"][];
+export const GOAL_STATUSES: readonly string[] = GOAL_STATUS_VALUES;
+
 export interface JournalEntryDoc {
   date: string; // "YYYY-MM-DD"
   type: "win" | "blocker" | "checkin" | "note";
@@ -58,6 +66,12 @@ export interface PriorityDoc {
   linkedGoalId: string | null;
   createdAt: number;
 }
+
+// Single source of truth for PriorityDoc["status"]'s valid values, so lead/intern
+// Server Actions validate against one array instead of two hand-kept copies.
+// See GOAL_STATUSES above for why this is typed readonly string[].
+const PRIORITY_STATUS_VALUES = ["Done", "In Progress", "Not Started", "Blocked"] satisfies PriorityDoc["status"][];
+export const PRIORITY_STATUSES: readonly string[] = PRIORITY_STATUS_VALUES;
 
 export interface ProjectDoc {
   name: string;

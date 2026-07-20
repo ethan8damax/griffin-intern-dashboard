@@ -3,9 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { getAdminDb } from "@/lib/firebase-admin";
 import { requireRole } from "@/lib/auth/dal";
-import type { PriorityDoc } from "@/lib/auth/types";
-
-const VALID_STATUSES = ["Done", "In Progress", "Not Started", "Blocked"];
+import { PRIORITY_STATUSES, type PriorityDoc } from "@/lib/auth/types";
 
 export async function addPriority(formData: FormData): Promise<void> {
   const user = await requireRole("intern");
@@ -36,7 +34,7 @@ export async function updatePriority(formData: FormData): Promise<void> {
   if (!priorityId || !text) {
     throw new Error("Missing priority id or text.");
   }
-  if (!VALID_STATUSES.includes(status)) {
+  if (!PRIORITY_STATUSES.includes(status)) {
     throw new Error("Invalid status.");
   }
 

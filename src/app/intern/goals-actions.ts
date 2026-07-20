@@ -4,8 +4,7 @@
 import { revalidatePath } from "next/cache";
 import { getAdminDb } from "@/lib/firebase-admin";
 import { requireRole } from "@/lib/auth/dal";
-
-const VALID_STATUSES = ["green", "yellow", "red", "gray"];
+import { GOAL_STATUSES } from "@/lib/auth/types";
 
 export async function updateGoalStatus(formData: FormData): Promise<void> {
   const user = await requireRole("intern");
@@ -15,7 +14,7 @@ export async function updateGoalStatus(formData: FormData): Promise<void> {
   if (!goalId) {
     throw new Error("Missing goal id.");
   }
-  if (!VALID_STATUSES.includes(status)) {
+  if (!GOAL_STATUSES.includes(status)) {
     throw new Error("Invalid status.");
   }
   if (!Number.isFinite(progress) || progress < 0 || progress > 100) {
