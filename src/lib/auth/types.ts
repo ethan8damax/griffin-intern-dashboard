@@ -34,3 +34,50 @@ export interface MilestoneDoc {
   notes?: string | null;
   createdAt: number;
 }
+
+export interface GoalDoc {
+  objective: string;
+  status: "green" | "yellow" | "red" | "gray";
+  targetDate: string; // "YYYY-MM-DD"
+  progress: number; // 0-100, manually set — no formula, same as today
+  krs: { id: string; text: string }[];
+  createdAt: number;
+}
+
+export interface JournalEntryDoc {
+  date: string; // "YYYY-MM-DD"
+  type: "win" | "blocker" | "checkin" | "note";
+  text: string;
+  createdAt: number;
+}
+
+export interface PriorityDoc {
+  text: string;
+  weekOf: string; // "YYYY-MM-DD", Monday of the week
+  status: "Done" | "In Progress" | "Not Started" | "Blocked";
+  linkedGoalId: string | null;
+  createdAt: number;
+}
+
+export interface ProjectDoc {
+  name: string;
+  assignedBy: string;
+  status: "Not Started" | "In Progress" | "Complete" | "Blocked";
+  dueDate: string;
+  githubRepo: string;
+  jiraTicket: string;
+  projectLink: string;
+  deliverables: string;
+  estimatedTime: string;
+  priority: "Low" | "Medium" | "High";
+  createdAt: number;
+}
+
+export interface ProfileDoc {
+  role: string;
+  manager: string;
+  department: string;
+  startDate: string;
+  bio: string;
+  capacity: number; // 0-100, "Current Capacity" — lead-set, no formula
+}
