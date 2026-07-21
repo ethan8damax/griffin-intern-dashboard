@@ -2,6 +2,7 @@
 import { notFound } from "next/navigation";
 import { getAdminDb } from "@/lib/firebase-admin";
 import { requireRole } from "@/lib/auth/dal";
+import { isOwnedIntern } from "@/lib/auth/ownership";
 import { addMilestone, updateMilestone, deleteMilestone } from "./timeline-actions";
 import { Timeline } from "@/components/timeline";
 import type { MilestoneDoc, UserDoc } from "@/lib/auth/types";
@@ -19,16 +20,7 @@ export default async function InternTimelinePage({
     notFound();
   }
   const targetUser = userSnapshot.data() as UserDoc;
-  if (
-    targetUser.role !== "intern" ||
-    targetUser.engagementId !== (lead.engagementId ?? "")
-  ) {
-    // Same "not found" outcome as a missing doc — don't let a lead
-    // distinguish "wrong engagement" from "no such record" for a uid they
-    // already hold. Coalescing lead.engagementId to "" (matching
-    // assertOwnedIntern in timeline-actions.ts and assertSameEngagement in
-    // ../actions.ts) also guards against a lead with no engagementId
-    // matching an intern doc that likewise has no engagementId.
+  if (!isOwnedIntern(targetUser, lead.engagementId ?? "")) {
     notFound();
   }
 
