@@ -24,6 +24,22 @@ export default async function InternPage() {
         <button type="submit">Sign out</button>
       </form>
 
+      <p>
+        <a href="/intern/goals">Goals</a>
+      </p>
+      <p>
+        <a href="/intern/journal">Journal</a>
+      </p>
+      <p>
+        <a href="/intern/priorities">Priorities</a>
+      </p>
+      <p>
+        <a href="/intern/projects">Projects</a>
+      </p>
+      <p>
+        <a href="/intern/profile">Profile</a>
+      </p>
+
       <h2>Your timeline</h2>
       <Timeline uid={user.uid} milestones={milestones} editable={false} />
     </main>

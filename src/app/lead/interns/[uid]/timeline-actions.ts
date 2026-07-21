@@ -4,25 +4,8 @@
 import { revalidatePath } from "next/cache";
 import { getAdminDb } from "@/lib/firebase-admin";
 import { requireRole } from "@/lib/auth/dal";
-import type { MilestoneDoc, UserDoc } from "@/lib/auth/types";
-
-async function assertOwnedIntern(
-  uid: string,
-  leadEngagementId: string
-): Promise<void> {
-  const userSnapshot = await getAdminDb().collection("users").doc(uid).get();
-  if (!userSnapshot.exists) {
-    throw new Error("Intern not found.");
-  }
-  const targetUser = userSnapshot.data() as UserDoc;
-  if (targetUser.role !== "intern" || targetUser.engagementId !== leadEngagementId) {
-    // Same message as the "doesn't exist" case above — don't let a lead
-    // distinguish "wrong engagement" from "no such record" for a uid they
-    // already hold, matching the collapsed-message convention in
-    // src/app/lead/actions.ts.
-    throw new Error("Intern not found.");
-  }
-}
+import { assertOwnedIntern } from "@/lib/auth/ownership";
+import type { MilestoneDoc } from "@/lib/auth/types";
 
 function parseDateInput(dateInput: string): number | null {
   if (!dateInput) return null;
@@ -63,7 +46,7 @@ export async function addMilestone(formData: FormData): Promise<void> {
   if (!uid || !title) {
     throw new Error("Missing intern id or title.");
   }
-  await assertOwnedIntern(uid, lead.engagementId ?? "");
+  await assertOwnedIntern(uid, lead.engagementId ?? "", "Intern not found.");
 
   const milestone: MilestoneDoc = {
     title,
@@ -95,7 +78,7 @@ export async function updateMilestone(formData: FormData): Promise<void> {
   if (status !== "upcoming" && status !== "complete") {
     throw new Error("Invalid status.");
   }
-  await assertOwnedIntern(uid, lead.engagementId ?? "");
+  await assertOwnedIntern(uid, lead.engagementId ?? "", "Intern not found.");
 
   await getAdminDb()
     .collection("users")
@@ -113,7 +96,7 @@ export async function deleteMilestone(formData: FormData): Promise<void> {
   if (!uid || !milestoneId) {
     throw new Error("Missing intern id or milestone id.");
   }
-  await assertOwnedIntern(uid, lead.engagementId ?? "");
+  await assertOwnedIntern(uid, lead.engagementId ?? "", "Intern not found.");
 
   await getAdminDb()
     .collection("users")
