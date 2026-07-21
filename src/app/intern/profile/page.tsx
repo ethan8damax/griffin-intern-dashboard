@@ -1,7 +1,7 @@
 import { getAdminDb } from "@/lib/firebase-admin";
 import { requireRole } from "@/lib/auth/dal";
 import { updateOwnBio } from "../profile-actions";
-import type { ProfileDoc } from "@/lib/auth/types";
+import { PROFILE_DOC_ID, type ProfileDoc } from "@/lib/auth/types";
 
 export default async function InternProfilePage() {
   const user = await requireRole("intern");
@@ -10,7 +10,7 @@ export default async function InternProfilePage() {
     .collection("users")
     .doc(user.uid)
     .collection("profile")
-    .doc("data")
+    .doc(PROFILE_DOC_ID)
     .get();
   const profile = profileSnapshot.exists ? (profileSnapshot.data() as ProfileDoc) : null;
 

@@ -3,7 +3,7 @@ import { getAdminDb } from "@/lib/firebase-admin";
 import { requireRole } from "@/lib/auth/dal";
 import { isOwnedIntern } from "@/lib/auth/ownership";
 import { updateProfile } from "../profile-actions";
-import type { ProfileDoc, UserDoc } from "@/lib/auth/types";
+import { PROFILE_DOC_ID, type ProfileDoc, type UserDoc } from "@/lib/auth/types";
 
 export default async function InternProfilePage({
   params,
@@ -26,7 +26,7 @@ export default async function InternProfilePage({
     .collection("users")
     .doc(uid)
     .collection("profile")
-    .doc("data")
+    .doc(PROFILE_DOC_ID)
     .get();
   const profile = profileSnapshot.exists ? (profileSnapshot.data() as ProfileDoc) : null;
 

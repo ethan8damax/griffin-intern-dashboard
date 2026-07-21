@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { getAdminDb } from "@/lib/firebase-admin";
 import { requireRole } from "@/lib/auth/dal";
 import { assertOwnedIntern } from "@/lib/auth/ownership";
-import { GOAL_STATUSES, type GoalDoc } from "@/lib/auth/types";
+import { GOAL_STATUSES, parsePercent, type GoalDoc } from "@/lib/auth/types";
 
 function parseKrs(raw: string): { id: string; text: string }[] {
   return raw
@@ -13,14 +13,6 @@ function parseKrs(raw: string): { id: string; text: string }[] {
     .map((line) => line.trim())
     .filter(Boolean)
     .map((text, index) => ({ id: String(index), text }));
-}
-
-function parseProgress(raw: string): number {
-  const progress = Number(raw);
-  if (!Number.isFinite(progress) || progress < 0 || progress > 100) {
-    throw new Error("Progress must be a number between 0 and 100.");
-  }
-  return progress;
 }
 
 export async function addGoal(formData: FormData): Promise<void> {
@@ -53,7 +45,7 @@ export async function updateGoal(formData: FormData): Promise<void> {
   const objective = String(formData.get("objective") ?? "").trim();
   const status = String(formData.get("status") ?? "").trim();
   const targetDate = String(formData.get("targetDate") ?? "").trim();
-  const progress = parseProgress(String(formData.get("progress") ?? "0"));
+  const progress = parsePercent(String(formData.get("progress") ?? "0"), "Progress");
   const krs = parseKrs(String(formData.get("krs") ?? ""));
   if (!uid || !goalId || !objective) {
     throw new Error("Missing intern id, goal id, or objective.");
