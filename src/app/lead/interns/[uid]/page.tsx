@@ -59,6 +59,9 @@ export default async function InternTimelinePage({
       <p>
         <a href={`/lead/interns/${uid}/projects`}>Projects</a>
       </p>
+      <p>
+        <a href={`/lead/interns/${uid}/profile`}>Profile</a>
+      </p>
       <h1>{targetUser.name}&apos;s timeline</h1>
       <Timeline
         uid={uid}
