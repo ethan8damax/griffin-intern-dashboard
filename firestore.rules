@@ -77,6 +77,42 @@ service cloud.firestore {
         ((resource.data.leadUserId == request.auth.uid && callerDoc().status != "removed") ||
          isActiveCompanyAdmin());
       allow write: if isActiveCompanyAdmin();
+
+      function isOwnEngagementLead() {
+        return isActiveEngagementLead() && callerDoc().engagementId == engagementId;
+      }
+
+      function isOwnEngagementIntern() {
+        return request.auth != null &&
+          callerDoc().role == "intern" &&
+          callerDoc().engagementId == engagementId;
+      }
+
+      match /goals/{goalId} {
+        allow read: if request.auth != null &&
+          (isActiveCompanyAdmin() || isOwnEngagementLead() || isOwnEngagementIntern());
+        allow write: if isActiveCompanyAdmin() || isOwnEngagementLead();
+      }
+
+      match /priorities/{priorityId} {
+        allow read: if request.auth != null &&
+          (isActiveCompanyAdmin() || isOwnEngagementLead() || isOwnEngagementIntern());
+        allow write: if isActiveCompanyAdmin() || isOwnEngagementLead();
+      }
+
+      match /reflections/{reflectionId} {
+        allow read: if request.auth != null &&
+          (isActiveCompanyAdmin() || isOwnEngagementLead() || isOwnEngagementIntern());
+        allow write: if isActiveCompanyAdmin() || isOwnEngagementLead() ||
+          (isOwnEngagementIntern() && resource.data.authorUid == request.auth.uid);
+      }
+
+      match /reviews/{reviewId} {
+        allow read: if request.auth != null &&
+          (isActiveCompanyAdmin() || isOwnEngagementLead() ||
+           (request.auth != null && request.auth.uid == resource.data.subjectUserId));
+        allow write: if isActiveCompanyAdmin() || isOwnEngagementLead();
+      }
     }
 
     match /invites/{inviteId} {
