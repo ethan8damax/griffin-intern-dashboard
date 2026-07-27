@@ -63,6 +63,17 @@ export function parsePercent(raw: string, label: string): number {
   return value;
 }
 
+// Shared "one KR per line" textarea parser for GoalDoc/TeamGoalDoc.krs, so
+// lead/intern Server Actions parse against one function instead of two
+// hand-kept copies.
+export function parseKrs(raw: string): { id: string; text: string }[] {
+  return raw
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((text, index) => ({ id: String(index), text }));
+}
+
 export interface JournalEntryDoc {
   date: string; // "YYYY-MM-DD"
   type: "win" | "blocker" | "checkin" | "note";
