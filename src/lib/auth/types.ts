@@ -124,7 +124,7 @@ export const PROFILE_DOC_ID = "data";
 
 export interface TeamGoalDoc {
   objective: string;
-  status: "green" | "yellow" | "red" | "gray";
+  status: GoalDoc["status"];
   targetDate: string; // "YYYY-MM-DD"
   progress: number; // 0-100, manually set — no formula, same as GoalDoc
   krs: { id: string; text: string }[];
@@ -134,7 +134,7 @@ export interface TeamGoalDoc {
 export interface TeamPriorityDoc {
   text: string;
   weekOf: string; // "YYYY-MM-DD", Monday of the week
-  status: "Done" | "In Progress" | "Not Started" | "Blocked";
+  status: PriorityDoc["status"];
   linkedGoalId: string | null;
   createdAt: number;
 }
