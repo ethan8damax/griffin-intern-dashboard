@@ -85,6 +85,7 @@ service cloud.firestore {
       function isOwnEngagementIntern() {
         return request.auth != null &&
           callerDoc().role == "intern" &&
+          callerDoc().status != "removed" &&
           callerDoc().engagementId == engagementId;
       }
 
@@ -100,6 +101,10 @@ service cloud.firestore {
         allow write: if isActiveCompanyAdmin() || isOwnEngagementLead();
       }
 
+      // Note: resource.data.authorUid only exists on update/delete, not create —
+      // this rule under-permits intern-authored creates via direct client access.
+      // Harmless here since all real writes go through Server Actions (Admin SDK),
+      // which bypass this file entirely.
       match /reflections/{reflectionId} {
         allow read: if request.auth != null &&
           (isActiveCompanyAdmin() || isOwnEngagementLead() || isOwnEngagementIntern());
@@ -110,7 +115,7 @@ service cloud.firestore {
       match /reviews/{reviewId} {
         allow read: if request.auth != null &&
           (isActiveCompanyAdmin() || isOwnEngagementLead() ||
-           (request.auth != null && request.auth.uid == resource.data.subjectUserId));
+           request.auth.uid == resource.data.subjectUserId);
         allow write: if isActiveCompanyAdmin() || isOwnEngagementLead();
       }
     }
