@@ -4,12 +4,12 @@
 import { revalidatePath } from "next/cache";
 import { getAdminDb } from "@/lib/firebase-admin";
 import { requireRole } from "@/lib/auth/dal";
-import { requireLeadEngagementId } from "@/lib/auth/ownership";
+import { requireEngagementId } from "@/lib/auth/ownership";
 import { PRIORITY_STATUSES, type TeamPriorityDoc } from "@/lib/auth/types";
 
 export async function addTeamPriority(formData: FormData): Promise<void> {
   const lead = await requireRole("engagementLead");
-  const engagementId = requireLeadEngagementId(lead);
+  const engagementId = requireEngagementId(lead);
   const text = String(formData.get("text") ?? "").trim();
   const weekOf = String(formData.get("weekOf") ?? "").trim();
   const linkedGoalId = String(formData.get("linkedGoalId") ?? "").trim() || null;
@@ -30,7 +30,7 @@ export async function addTeamPriority(formData: FormData): Promise<void> {
 
 export async function updateTeamPriority(formData: FormData): Promise<void> {
   const lead = await requireRole("engagementLead");
-  const engagementId = requireLeadEngagementId(lead);
+  const engagementId = requireEngagementId(lead);
   const priorityId = String(formData.get("priorityId") ?? "").trim();
   const text = String(formData.get("text") ?? "").trim();
   const status = String(formData.get("status") ?? "").trim();
@@ -53,7 +53,7 @@ export async function updateTeamPriority(formData: FormData): Promise<void> {
 
 export async function deleteTeamPriority(formData: FormData): Promise<void> {
   const lead = await requireRole("engagementLead");
-  const engagementId = requireLeadEngagementId(lead);
+  const engagementId = requireEngagementId(lead);
   const priorityId = String(formData.get("priorityId") ?? "").trim();
   if (!priorityId) {
     throw new Error("Missing priority id.");

@@ -4,12 +4,12 @@
 import { revalidatePath } from "next/cache";
 import { getAdminDb } from "@/lib/firebase-admin";
 import { requireRole } from "@/lib/auth/dal";
-import { requireLeadEngagementId, assertOwnedIntern } from "@/lib/auth/ownership";
+import { requireEngagementId, assertOwnedIntern } from "@/lib/auth/ownership";
 import type { ReviewDoc } from "@/lib/auth/types";
 
 export async function createReview(formData: FormData): Promise<void> {
   const lead = await requireRole("engagementLead");
-  const engagementId = requireLeadEngagementId(lead);
+  const engagementId = requireEngagementId(lead);
   const subjectUserId = String(formData.get("subjectUserId") ?? "").trim();
   const reviewerName = String(formData.get("reviewerName") ?? "").trim();
   const reviewerRole = String(formData.get("reviewerRole") ?? "").trim();

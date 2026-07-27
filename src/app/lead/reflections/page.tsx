@@ -1,13 +1,13 @@
 // src/app/lead/reflections/page.tsx
 import { getAdminDb } from "@/lib/firebase-admin";
 import { requireRole } from "@/lib/auth/dal";
-import { requireLeadEngagementId } from "@/lib/auth/ownership";
+import { requireEngagementId } from "@/lib/auth/ownership";
 import { addReflection, updateReflection, deleteReflection } from "../reflections-actions";
 import type { ReflectionDoc } from "@/lib/auth/types";
 
 export default async function ReflectionsPage() {
   const lead = await requireRole("engagementLead");
-  const engagementId = requireLeadEngagementId(lead);
+  const engagementId = requireEngagementId(lead);
 
   const reflectionsSnapshot = await getAdminDb()
     .collection("engagements")

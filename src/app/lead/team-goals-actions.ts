@@ -4,12 +4,12 @@
 import { revalidatePath } from "next/cache";
 import { getAdminDb } from "@/lib/firebase-admin";
 import { requireRole } from "@/lib/auth/dal";
-import { requireLeadEngagementId } from "@/lib/auth/ownership";
+import { requireEngagementId } from "@/lib/auth/ownership";
 import { GOAL_STATUSES, parseKrs, parsePercent, type TeamGoalDoc } from "@/lib/auth/types";
 
 export async function addTeamGoal(formData: FormData): Promise<void> {
   const lead = await requireRole("engagementLead");
-  const engagementId = requireLeadEngagementId(lead);
+  const engagementId = requireEngagementId(lead);
   const objective = String(formData.get("objective") ?? "").trim();
   const targetDate = String(formData.get("targetDate") ?? "").trim();
   const krs = parseKrs(String(formData.get("krs") ?? ""));
@@ -31,7 +31,7 @@ export async function addTeamGoal(formData: FormData): Promise<void> {
 
 export async function updateTeamGoal(formData: FormData): Promise<void> {
   const lead = await requireRole("engagementLead");
-  const engagementId = requireLeadEngagementId(lead);
+  const engagementId = requireEngagementId(lead);
   const goalId = String(formData.get("goalId") ?? "").trim();
   const objective = String(formData.get("objective") ?? "").trim();
   const status = String(formData.get("status") ?? "").trim();
@@ -56,7 +56,7 @@ export async function updateTeamGoal(formData: FormData): Promise<void> {
 
 export async function deleteTeamGoal(formData: FormData): Promise<void> {
   const lead = await requireRole("engagementLead");
-  const engagementId = requireLeadEngagementId(lead);
+  const engagementId = requireEngagementId(lead);
   const goalId = String(formData.get("goalId") ?? "").trim();
   if (!goalId) {
     throw new Error("Missing goal id.");

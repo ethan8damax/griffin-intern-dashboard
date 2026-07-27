@@ -1,12 +1,12 @@
 import { getAdminDb } from "@/lib/firebase-admin";
 import { requireRole } from "@/lib/auth/dal";
-import { requireLeadEngagementId } from "@/lib/auth/ownership";
+import { requireEngagementId } from "@/lib/auth/ownership";
 import { createReview } from "../reviews-actions";
 import type { ReviewDoc } from "@/lib/auth/types";
 
 export default async function ReviewsPage() {
   const lead = await requireRole("engagementLead");
-  const engagementId = requireLeadEngagementId(lead);
+  const engagementId = requireEngagementId(lead);
 
   const reviewsSnapshot = await getAdminDb()
     .collection("engagements")

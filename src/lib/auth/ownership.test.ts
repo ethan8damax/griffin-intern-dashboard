@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isOwnedIntern, requireLeadEngagementId } from "./ownership";
+import { isOwnedIntern, requireEngagementId } from "./ownership";
 import type { UserDoc } from "./types";
 
 function makeUser(overrides: Partial<UserDoc> = {}): UserDoc {
@@ -32,14 +32,14 @@ describe("isOwnedIntern", () => {
   });
 });
 
-describe("requireLeadEngagementId", () => {
+describe("requireEngagementId", () => {
   it("throws when the lead has no engagementId", () => {
-    expect(() => requireLeadEngagementId({ engagementId: undefined })).toThrow(
+    expect(() => requireEngagementId({ engagementId: undefined })).toThrow(
       "You are not assigned to an engagement."
     );
   });
 
   it("returns the engagementId when present", () => {
-    expect(requireLeadEngagementId({ engagementId: "eng-1" })).toBe("eng-1");
+    expect(requireEngagementId({ engagementId: "eng-1" })).toBe("eng-1");
   });
 });

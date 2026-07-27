@@ -1,13 +1,13 @@
 // src/app/lead/team-goals/page.tsx
 import { getAdminDb } from "@/lib/firebase-admin";
 import { requireRole } from "@/lib/auth/dal";
-import { requireLeadEngagementId } from "@/lib/auth/ownership";
+import { requireEngagementId } from "@/lib/auth/ownership";
 import { addTeamGoal, updateTeamGoal, deleteTeamGoal } from "../team-goals-actions";
 import type { TeamGoalDoc } from "@/lib/auth/types";
 
 export default async function TeamGoalsPage() {
   const lead = await requireRole("engagementLead");
-  const engagementId = requireLeadEngagementId(lead);
+  const engagementId = requireEngagementId(lead);
 
   const goalsSnapshot = await getAdminDb()
     .collection("engagements")

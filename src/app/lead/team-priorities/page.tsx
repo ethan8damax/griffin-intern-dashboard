@@ -1,13 +1,13 @@
 // src/app/lead/team-priorities/page.tsx
 import { getAdminDb } from "@/lib/firebase-admin";
 import { requireRole } from "@/lib/auth/dal";
-import { requireLeadEngagementId } from "@/lib/auth/ownership";
+import { requireEngagementId } from "@/lib/auth/ownership";
 import { addTeamPriority, updateTeamPriority, deleteTeamPriority } from "../team-priorities-actions";
 import type { TeamPriorityDoc } from "@/lib/auth/types";
 
 export default async function TeamPrioritiesPage() {
   const lead = await requireRole("engagementLead");
-  const engagementId = requireLeadEngagementId(lead);
+  const engagementId = requireEngagementId(lead);
 
   const prioritiesSnapshot = await getAdminDb()
     .collection("engagements")

@@ -4,12 +4,12 @@
 import { revalidatePath } from "next/cache";
 import { getAdminDb } from "@/lib/firebase-admin";
 import { requireRole } from "@/lib/auth/dal";
-import { requireLeadEngagementId } from "@/lib/auth/ownership";
+import { requireEngagementId } from "@/lib/auth/ownership";
 import { REFLECTION_CATEGORIES, type ReflectionDoc } from "@/lib/auth/types";
 
 export async function addReflection(formData: FormData): Promise<void> {
   const lead = await requireRole("engagementLead");
-  const engagementId = requireLeadEngagementId(lead);
+  const engagementId = requireEngagementId(lead);
   const category = String(formData.get("category") ?? "").trim();
   const authorUid = String(formData.get("authorUid") ?? "").trim() || null;
   const subjectUid = String(formData.get("subjectUid") ?? "").trim() || null;
@@ -36,7 +36,7 @@ export async function addReflection(formData: FormData): Promise<void> {
 
 export async function updateReflection(formData: FormData): Promise<void> {
   const lead = await requireRole("engagementLead");
-  const engagementId = requireLeadEngagementId(lead);
+  const engagementId = requireEngagementId(lead);
   const reflectionId = String(formData.get("reflectionId") ?? "").trim();
   const category = String(formData.get("category") ?? "").trim();
   const authorUid = String(formData.get("authorUid") ?? "").trim() || null;
@@ -67,7 +67,7 @@ export async function updateReflection(formData: FormData): Promise<void> {
 
 export async function deleteReflection(formData: FormData): Promise<void> {
   const lead = await requireRole("engagementLead");
-  const engagementId = requireLeadEngagementId(lead);
+  const engagementId = requireEngagementId(lead);
   const reflectionId = String(formData.get("reflectionId") ?? "").trim();
   if (!reflectionId) {
     throw new Error("Missing reflection id.");
