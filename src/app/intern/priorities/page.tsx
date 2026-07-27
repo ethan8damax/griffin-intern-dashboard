@@ -2,7 +2,7 @@ import { getAdminDb } from "@/lib/firebase-admin";
 import { requireRole } from "@/lib/auth/dal";
 import { resolveLinkedGoal } from "@/lib/goals";
 import { addPriority, updatePriority, deletePriority } from "../priorities-actions";
-import type { GoalDoc, PriorityDoc } from "@/lib/auth/types";
+import type { GoalDoc, PriorityDoc, TeamGoalDoc } from "@/lib/auth/types";
 
 export default async function InternPrioritiesPage() {
   const user = await requireRole("intern");
@@ -26,7 +26,16 @@ export default async function InternPrioritiesPage() {
           const snapshot = await db.collection("users").doc(user.uid).collection("goals").doc(id).get();
           return snapshot.exists ? (snapshot.data() as GoalDoc) : null;
         },
-        async () => null // team goals arrive in Sprint 3.1b
+        async (id) => {
+          if (!user.engagementId) return null;
+          const snapshot = await db
+            .collection("engagements")
+            .doc(user.engagementId)
+            .collection("goals")
+            .doc(id)
+            .get();
+          return snapshot.exists ? (snapshot.data() as TeamGoalDoc) : null;
+        }
       )
     )
   );
