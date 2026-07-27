@@ -48,6 +48,9 @@ export default async function InternPage() {
       <p>
         <a href="/intern/reflections">Reflections</a>
       </p>
+      <p>
+        <a href="/intern/reviews">Reviews</a>
+      </p>
 
       <h2>Your timeline</h2>
       <Timeline uid={user.uid} milestones={milestones} editable={false} />
