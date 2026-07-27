@@ -458,7 +458,7 @@ Tasks 5-9, matching how Sprint 2's `timeline` rules don't field-restrict lead wr
 either. This is defense-in-depth only; real reads/writes go through the Admin SDK via
 Server Actions, bypassing rules entirely.
 
-- [ ] **Step 2: Deploy the updated rules**
+- [x] **Step 2: Deploy the updated rules**
 
 Try: `firebase deploy --only firestore:rules`
 Expected: `✔ Deploy complete!`
@@ -2066,26 +2066,33 @@ git commit -m "Add per-intern profile: Server Actions and placeholder pages"
 
 **Files:** none (verification only)
 
-- [ ] **Step 1: Run the full test suite**
+- [x] **Step 1: Run the full test suite**
 
 Run: `npm run test`
 Expected: PASS — includes the 4 new `ownership.test.ts` tests and 4 new
 `goals.test.ts` tests, all prior tests (reconcile, roster, timeline-seed) still
 passing
 
-- [ ] **Step 2: Run the linter and typecheck**
+- [x] **Step 2: Run the linter and typecheck**
 
 Run: `npm run lint && npx tsc --noEmit`
 Expected: no errors
 
-- [ ] **Step 3: Run a production build**
+- [x] **Step 3: Run a production build**
 
 Run: `npm run build`
 Expected: build succeeds; `/intern/{goals,journal,priorities,projects,profile}` and
 `/lead/interns/[uid]/{goals,journal,priorities,projects,profile}` all listed as
 dynamic routes
 
-- [ ] **Step 4: Manual smoke test (requires a real engagement with a signed-in lead)**
+- [x] **Step 4: Manual smoke test (requires a real engagement with a signed-in lead)**
+
+Performed via browser automation on 2026-07-27 against griffin-17f70 with a throwaway
+"QA Smoke Test Engagement" (qa-lead-test@example.com / qa-intern-test@example.com).
+All 13 sub-steps passed — including the cross-engagement 404 check (companyAdmin's
+uid rejected at `/lead/interns/{uid}/goals`), the field-level intern/lead
+restrictions on Goals/Projects/Profile, and the `linkedGoalId` resolution (valid id
+resolved, nonsense id degraded gracefully with no crash).
 
 Using an account already onboarded as an `engagementLead`, with at least one active
 intern:
