@@ -31,3 +31,10 @@ export async function assertOwnedIntern(
   }
   return targetUser;
 }
+
+export function requireEngagementId(user: { engagementId?: string }): string {
+  if (!user.engagementId) {
+    throw new Error("You are not assigned to an engagement.");
+  }
+  return user.engagementId;
+}

@@ -77,6 +77,47 @@ service cloud.firestore {
         ((resource.data.leadUserId == request.auth.uid && callerDoc().status != "removed") ||
          isActiveCompanyAdmin());
       allow write: if isActiveCompanyAdmin();
+
+      function isOwnEngagementLead() {
+        return isActiveEngagementLead() && callerDoc().engagementId == engagementId;
+      }
+
+      function isOwnEngagementIntern() {
+        return request.auth != null &&
+          callerDoc().role == "intern" &&
+          callerDoc().status != "removed" &&
+          callerDoc().engagementId == engagementId;
+      }
+
+      match /goals/{goalId} {
+        allow read: if request.auth != null &&
+          (isActiveCompanyAdmin() || isOwnEngagementLead() || isOwnEngagementIntern());
+        allow write: if isActiveCompanyAdmin() || isOwnEngagementLead();
+      }
+
+      match /priorities/{priorityId} {
+        allow read: if request.auth != null &&
+          (isActiveCompanyAdmin() || isOwnEngagementLead() || isOwnEngagementIntern());
+        allow write: if isActiveCompanyAdmin() || isOwnEngagementLead();
+      }
+
+      // Note: resource.data.authorUid only exists on update/delete, not create —
+      // this rule under-permits intern-authored creates via direct client access.
+      // Harmless here since all real writes go through Server Actions (Admin SDK),
+      // which bypass this file entirely.
+      match /reflections/{reflectionId} {
+        allow read: if request.auth != null &&
+          (isActiveCompanyAdmin() || isOwnEngagementLead() || isOwnEngagementIntern());
+        allow write: if isActiveCompanyAdmin() || isOwnEngagementLead() ||
+          (isOwnEngagementIntern() && resource.data.authorUid == request.auth.uid);
+      }
+
+      match /reviews/{reviewId} {
+        allow read: if request.auth != null &&
+          (isActiveCompanyAdmin() || isOwnEngagementLead() ||
+           request.auth.uid == resource.data.subjectUserId);
+        allow write: if isActiveCompanyAdmin() || isOwnEngagementLead();
+      }
     }
 
     match /invites/{inviteId} {

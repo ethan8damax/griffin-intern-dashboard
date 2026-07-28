@@ -84,6 +84,19 @@ export default async function LeadPage() {
         ))}
       </ul>
 
+      <p>
+        <a href="/lead/team-goals">Team goals</a>
+      </p>
+      <p>
+        <a href="/lead/team-priorities">Team priorities</a>
+      </p>
+      <p>
+        <a href="/lead/reflections">Reflections</a>
+      </p>
+      <p>
+        <a href="/lead/reviews">Reviews</a>
+      </p>
+
       <h2>Invite an intern</h2>
       <InviteInternForm />
     </main>

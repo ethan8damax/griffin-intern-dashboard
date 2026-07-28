@@ -63,6 +63,17 @@ export function parsePercent(raw: string, label: string): number {
   return value;
 }
 
+// Shared "one KR per line" textarea parser for GoalDoc/TeamGoalDoc.krs, so
+// lead/intern Server Actions parse against one function instead of two
+// hand-kept copies.
+export function parseKrs(raw: string): { id: string; text: string }[] {
+  return raw
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((text, index) => ({ id: String(index), text }));
+}
+
 export interface JournalEntryDoc {
   date: string; // "YYYY-MM-DD"
   type: "win" | "blocker" | "checkin" | "note";
@@ -121,3 +132,52 @@ export interface ProfileDoc {
 // fixed-id document, since Firestore paths can't nest a doc directly under a
 // doc. Named here so the id isn't a copy-pasted magic string at each call site.
 export const PROFILE_DOC_ID = "data";
+
+export interface TeamGoalDoc {
+  objective: string;
+  status: GoalDoc["status"];
+  targetDate: string; // "YYYY-MM-DD"
+  progress: number; // 0-100, manually set — no formula, same as GoalDoc
+  krs: { id: string; text: string }[];
+  createdAt: number;
+}
+
+export interface TeamPriorityDoc {
+  text: string;
+  weekOf: string; // "YYYY-MM-DD", Monday of the week
+  status: PriorityDoc["status"];
+  linkedGoalId: string | null;
+  createdAt: number;
+}
+
+export interface ReflectionDoc {
+  category: "self" | "peer" | "work";
+  authorUid: string | null; // null only for "work" (team) reflections
+  subjectUid: string | null; // set for "peer" (who it's about); null for self/work
+  weekOf: string;
+  text: string;
+  createdAt: number;
+}
+
+// Single source of truth for ReflectionDoc["category"]'s valid values, so lead/intern
+// Server Actions validate against one array instead of two hand-kept copies.
+// See GOAL_STATUSES above for why this is typed readonly string[].
+const REFLECTION_CATEGORY_VALUES = ["self", "peer", "work"] satisfies ReflectionDoc["category"][];
+export const REFLECTION_CATEGORIES: readonly string[] = REFLECTION_CATEGORY_VALUES;
+
+export interface ReviewDoc {
+  token: string; // matches today's ?review=<token> link flow, unchanged
+  subjectUserId: string; // must be a real users/{uid} intern
+  reviewerName: string; // plain text — a reviewer never needs an account
+  reviewerRole: string; // plain text, e.g. "Engagement Lead", "Fellow intern"
+  status: "pending" | "submitted";
+  requestedDate: string;
+  submittedDate?: string;
+  questions: {
+    id: string;
+    text: string;
+    type: "score" | "text";
+    response: number | string | null;
+  }[];
+  createdAt: number;
+}

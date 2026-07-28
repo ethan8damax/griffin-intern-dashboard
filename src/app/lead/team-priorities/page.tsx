@@ -1,55 +1,34 @@
+// src/app/lead/team-priorities/page.tsx
 import { getAdminDb } from "@/lib/firebase-admin";
 import { requireRole } from "@/lib/auth/dal";
-import { resolveLinkedGoal } from "@/lib/goals";
-import { addPriority, updatePriority, deletePriority } from "../priorities-actions";
-import type { GoalDoc, PriorityDoc, TeamGoalDoc } from "@/lib/auth/types";
+import { requireEngagementId } from "@/lib/auth/ownership";
+import { addTeamPriority, updateTeamPriority, deleteTeamPriority } from "../team-priorities-actions";
+import type { TeamPriorityDoc } from "@/lib/auth/types";
 
-export default async function InternPrioritiesPage() {
-  const user = await requireRole("intern");
-  const db = getAdminDb();
+export default async function TeamPrioritiesPage() {
+  const lead = await requireRole("engagementLead");
+  const engagementId = requireEngagementId(lead);
 
-  const prioritiesSnapshot = await db
-    .collection("users")
-    .doc(user.uid)
+  const prioritiesSnapshot = await getAdminDb()
+    .collection("engagements")
+    .doc(engagementId)
     .collection("priorities")
     .get();
   const priorities = prioritiesSnapshot.docs.map((doc) => ({
     id: doc.id,
-    ...(doc.data() as PriorityDoc),
+    ...(doc.data() as TeamPriorityDoc),
   }));
-
-  const resolvedGoals = await Promise.all(
-    priorities.map((priority) =>
-      resolveLinkedGoal(
-        priority.linkedGoalId,
-        async (id) => {
-          const snapshot = await db.collection("users").doc(user.uid).collection("goals").doc(id).get();
-          return snapshot.exists ? (snapshot.data() as GoalDoc) : null;
-        },
-        async (id) => {
-          if (!user.engagementId) return null;
-          const snapshot = await db
-            .collection("engagements")
-            .doc(user.engagementId)
-            .collection("goals")
-            .doc(id)
-            .get();
-          return snapshot.exists ? (snapshot.data() as TeamGoalDoc) : null;
-        }
-      )
-    )
-  );
 
   return (
     <main>
       <p>
-        <a href="/intern">← Back</a>
+        <a href="/lead">← Back</a>
       </p>
-      <h1>Your priorities</h1>
+      <h1>Team priorities</h1>
       <ul>
-        {priorities.map((priority, index) => (
+        {priorities.map((priority) => (
           <li key={priority.id}>
-            <form action={updatePriority}>
+            <form action={updateTeamPriority}>
               <input type="hidden" name="priorityId" value={priority.id} />
               <label>
                 Text
@@ -70,12 +49,7 @@ export default async function InternPrioritiesPage() {
               </label>
               <button type="submit">Save</button>
             </form>
-            {resolvedGoals[index] && (
-              <p>
-                Linked to {resolvedGoals[index]!.scope} goal: {resolvedGoals[index]!.objective}
-              </p>
-            )}
-            <form action={deletePriority}>
+            <form action={deleteTeamPriority}>
               <input type="hidden" name="priorityId" value={priority.id} />
               <button type="submit">Delete</button>
             </form>
@@ -83,8 +57,8 @@ export default async function InternPrioritiesPage() {
         ))}
       </ul>
 
-      <h2>Add a priority</h2>
-      <form action={addPriority}>
+      <h2>Add a team priority</h2>
+      <form action={addTeamPriority}>
         <label>
           Text
           <input name="text" required />

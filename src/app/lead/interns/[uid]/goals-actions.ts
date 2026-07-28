@@ -5,15 +5,7 @@ import { revalidatePath } from "next/cache";
 import { getAdminDb } from "@/lib/firebase-admin";
 import { requireRole } from "@/lib/auth/dal";
 import { assertOwnedIntern } from "@/lib/auth/ownership";
-import { GOAL_STATUSES, parsePercent, type GoalDoc } from "@/lib/auth/types";
-
-function parseKrs(raw: string): { id: string; text: string }[] {
-  return raw
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((text, index) => ({ id: String(index), text }));
-}
+import { GOAL_STATUSES, parseKrs, parsePercent, type GoalDoc } from "@/lib/auth/types";
 
 export async function addGoal(formData: FormData): Promise<void> {
   const lead = await requireRole("engagementLead");
