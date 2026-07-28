@@ -1,5 +1,5 @@
 import path from "node:path";
-import { defineConfig } from "vitest/config";
+import { configDefaults, defineConfig } from "vitest/config";
 
 export default defineConfig({
   // Mirrors tsconfig.json's "@/*" -> "./src/*" path mapping, which vitest
@@ -20,5 +20,9 @@ export default defineConfig({
   },
   test: {
     environment: "node",
+    // Each git worktree under .worktrees/ has its own copy of every *.test.ts
+    // file; vitest's defaults don't exclude it, so tests would otherwise run
+    // twice (once here, once from the worktree's own file).
+    exclude: [...configDefaults.exclude, ".worktrees/**"],
   },
 });
